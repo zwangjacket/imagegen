@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>imageedit prompts</title>
+    <style>
+      body { font-family: sans-serif; margin: 2rem; background: #fafafa; }
+      .messages { margin-bottom: 1rem; }
+      .messages p { margin: 0.25rem 0; padding: 0.5rem 0.75rem; border-radius: 4px; }
+      .messages .status { background: #e6f4ea; color: #0b6d2c; }
+      .messages .error { background: #fdecea; color: #8a1c1c; }
+      form { margin-top: 1rem; }
+      .editor { display: flex; gap: 2rem; align-items: flex-start; }
+      .controls { width: 30%; }
+      .text-panel { flex: 1; }
+      label { display: block; margin-bottom: 0.25rem; font-weight: 600; }
+      input[type="text"] { width: 100%; padding: 0.5rem; font-size: 1rem; }
+      textarea { width: 100%; min-height: 24rem; font-size: 1rem; padding: 0.75rem; line-height: 1.5; }
+      .buttons { margin-top: 0.75rem; display: flex; gap: 0.5rem; flex-wrap: wrap; }
+      button { padding: 0.5rem 0.9rem; font-size: 0.95rem; cursor: pointer; }
+      .gallery { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 1rem; }
+      .gallery figure { margin: 0; width: 240px; }
+      .gallery img { width: 100%; border-radius: 4px; border: 1px solid #ddd; background: #fff; }
+      .gallery figcaption { font-size: 0.85rem; margin-top: 0.25rem; word-break: break-all; }
+    </style>
+  </head>
+  <body>
+    <h1>Prompt editor</h1>
+    <p>Select an existing prompt or type a new name to create one.</p>
+    <div class="messages">
+      {% if status_message %}
+      <p class="status">{{ status_message }}</p>
+      {% endif %}
+      {% if error_message %}
+      <p class="error">{{ error_message }}</p>
+      {% endif %}
+    </div>
+    <form method="post">
+      <div class="editor">
+        <div class="controls">
+          <label for="prompt-name">Prompt name</label>
+          <input id="prompt-name" name="prompt_name" list="prompt-options" placeholder="start typing…" value="{{ selected_prompt }}">
+          <datalist id="prompt-options">
+            {% for prompt in prompt_names %}
+            <option value="{{ prompt }}"></option>
+            {% endfor %}
+          </datalist>
+          <label for="model-name">Model</label>
+          <select id="model-name" name="model_name">
+            {% for model in model_names %}
+            <option value="{{ model }}" {% if model == selected_model %}selected{% endif %}>{{ model }}</option>
+            {% endfor %}
+          </select>
+          <label for="image-size">Aspect ratio / size</label>
+          <input id="image-size" name="image_size" list="size-options" value="{{ image_size_value }}" placeholder="square">
+          <datalist id="size-options">
+            {% for size in allowed_sizes %}
+            <option value="{{ size }}"></option>
+            {% endfor %}
+          </datalist>
+          <label>
+            <input type="checkbox" name="include_prompt_metadata" {% if include_prompt_metadata %}checked{% endif %}>
+            Store prompt in EXIF (-a)
+          </label>
+          {% if supports_image_urls %}
+          <label for="image-urls">Image URLs (-u each line or comma separated)</label>
+          <textarea id="image-urls" name="image_urls" rows="4" placeholder="https://example.com/source.jpg">{{ image_urls_text }}</textarea>
+          {% endif %}
+          <div class="buttons">
+            <button type="submit" name="action" value="load">Load</button>
+            <button type="submit" name="action" value="save">Save</button>
+            <button type="submit" name="action" value="delete" onclick="return confirm('Delete this prompt?');">Delete</button>
+            <button type="submit" name="action" value="run">Run</button>
+          </div>
+        </div>
+        <div class="text-panel">
+          <label for="prompt-text">Prompt text</label>
+          <textarea id="prompt-text" name="prompt_text" spellcheck="true">{{ prompt_text }}</textarea>
+        </div>
+      </div>
+    </form>
+    {% if generated_paths %}
+    <section>
+      <h2>Generated assets</h2>
+      <ul>
+        {% for entry in asset_entries %}
+        <li>{{ entry.display }}</li>
+        {% endfor %}
+      </ul>
+      <div class="gallery">
+        {% for entry in asset_entries %}
+        <figure>
+          <a href="{{ url_for(asset_route, filename=entry.filename) }}" target="_blank">
+            <img src="{{ url_for(asset_route, filename=entry.filename) }}" alt="Generated image" loading="lazy">
+          </a>
+          <figcaption>{{ entry.display }}</figcaption>
+        </figure>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+  </body>
+</html>

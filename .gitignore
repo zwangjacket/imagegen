@@ -1,0 +1,10 @@
+.env
+.venv
+.python-version
+*.jpg
+*.png
+*.jpeg
+/assets
+/dist
+/.junie
+/.idea
