@@ -57,7 +57,7 @@ uv run imagegen <model-name> --help
 uv run imagegen seedream -f cookie
 ```
 Note: seedream is an example model name.
-Use uv run imagegen --help to see the models registered in this repository (e.g., schnell, dev, …).
+Use uv run imagegen --help to see the models registered in this repository (e.g., schnell, dev, flux-2, flux-2-pro, nano-banana, …).
 To run with a prompt file, place prompts/cookie.txt in the prompts/ directory
 (the .txt suffix is optional when using -f cookie).
 
@@ -71,6 +71,9 @@ uv run imagegen dev -p "detailed city skyline at dusk" -# 2
 
 # If the model supports width/height (dev does), you can specify both -w and -h
 uv run imagegen dev -p "studio photo" -w 832 -h 1216
+
+# Use the Flask prompt editor (imageedit) if you prefer a UI
+uv run flask --app imageedit.app run --debug
 ```
 
 When generation succeeds, image paths are printed to stdout and the files are written under assets/
@@ -125,8 +128,17 @@ uv run imagegen <model-name> --help
 A companion Flask app, `imageedit`, lets you manage prompt files and trigger runs from the browser.
 
 - Start it with `uv run flask --app imageedit.app run --debug` (or `dev` depending on your Flask version).
-- The UI lists prompts in `prompts/`, supports create/save/delete, and exposes the model selector plus the same key flags (`-a`, `-i`, `-u`) as the CLI.
+- The UI lists prompts in `prompts/`, supports create/save/delete, and exposes the model selector plus the same key flags (`-a`, `-i`, `-u`) as the CLI. The backend lives in `src/imageedit` with templates in `src/imageedit/templates`.
 - When you click **Run**, the app persists your prompt, invokes the CLI pipeline with `--no-preview`, and shows links to the generated assets.
+- Keep this section in sync when adding registry options that need UI coverage so both CLI and Flask stay in lockstep.
+
+For a ready-to-run command that binds to all interfaces (0.0.0.0) on port `5002`—handy on macOS where port 5000 is reserved—use the provided shell script:
+
+```
+./start_flask.sh
+```
+
+⚠️ This script exposes the unprotected dev server; anyone on your network could use it. Treat it as a convenient reference and adapt the command for hardened deployments if needed.
 
 
 ---

@@ -14,6 +14,12 @@
 - Tests under `tests/` mirror CLI scenarios; pair new features with matching `test_<feature>.py` modules.
 - File prompts resolve against `prompts/`; store reusable fixtures there when a test needs disk input.
 
+## Flask App Expectations
+- Keep the README’s “Prompt editor (Flask UI)” section accurate whenever `src/imageedit` changes (commands, features, templates).
+- The Flask app should continue to mirror the CLI registry: surfaced models, prompt editing, and key flags (`-a`, `-i`, `-u`, etc.) must stay in sync.
+- Routes and templates for the app live under `src/imageedit` and `src/imageedit/templates`; update both sides when adding new UI affordances.
+- Always run `uv run flask --app imageedit.app run --debug` locally before shipping Flask changes to verify the browser flow end to end.
+
 ## Build, Test, and Development Commands
 - `uv run imagegen dev -p "demo prompt"` executes the CLI; swap the model key to exercise other registry entries.
 - `uv run flask --app imageedit.app run --debug` runs the Flask server in development mode.
