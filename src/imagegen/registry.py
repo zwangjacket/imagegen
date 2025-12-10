@@ -1272,7 +1272,7 @@ MODEL_REGISTRY = {
                 "file_help": "prompt file in prompts/",
             },
             "image_size": {
-                "type": "i",
+                "type": "whi",
                 "default": "portrait_4_3",
                 "help": "preset image size",
                 "allowed_sizes": [
@@ -1287,6 +1287,18 @@ MODEL_REGISTRY = {
                     "auto_4K",
                 ],
                 "flags": ["-i", "--image-size"],
+            },
+            "width": {
+                "type": int,
+                "default": None,
+                "help": "image width in pixels (requires --height)",
+                "flags": ["-w", "--width"],
+            },
+            "height": {
+                "type": int,
+                "default": None,
+                "help": "image height in pixels (requires --width)",
+                "flags": ["-h", "--height"],
             },
             "num_images": {
                 "type": int,
@@ -1327,7 +1339,7 @@ MODEL_REGISTRY = {
                 "file_help": "prompt file in prompts/",
             },
             "image_size": {
-                "type": "i",
+                "type": "whi",
                 "default": "portrait_4_3",
                 "help": "preset image size",
                 "allowed_sizes": [
@@ -1342,6 +1354,18 @@ MODEL_REGISTRY = {
                     "auto_4K",
                 ],
                 "flags": ["-i", "--image-size"],
+            },
+            "width": {
+                "type": int,
+                "default": None,
+                "help": "image width in pixels (requires --height)",
+                "flags": ["-w", "--width"],
+            },
+            "height": {
+                "type": int,
+                "default": None,
+                "help": "image height in pixels (requires --width)",
+                "flags": ["-h", "--height"],
             },
             "num_images": {
                 "type": int,
