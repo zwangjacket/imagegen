@@ -51,6 +51,13 @@
             <option value="{{ model }}" {% if model == selected_model %}selected{% endif %}>{{ model }}</option>
             {% endfor %}
           </select>
+          <label for="style-name">Style prompt</label>
+          <input id="style-name" name="style_name" list="style-options" placeholder="start typing…" value="{{ selected_style }}" onchange="document.getElementById('append-style-button').click();">
+          <datalist id="style-options">
+            {% for style in style_names %}
+            <option value="{{ style }}"></option>
+            {% endfor %}
+          </datalist>
           <label for="image-size">Aspect ratio / size</label>
           <input id="image-size" name="image_size" list="size-options" value="{{ image_size_value }}" placeholder="square">
           <datalist id="size-options">
@@ -71,6 +78,7 @@
             <button type="submit" name="action" value="save">Save</button>
             <button type="submit" name="action" value="delete" onclick="return confirm('Delete this prompt?');">Delete</button>
             <button type="submit" name="action" value="run">Run</button>
+            <button type="submit" name="action" value="append_style" id="append-style-button" hidden>Append style</button>
           </div>
         </div>
         <div class="text-panel">

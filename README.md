@@ -128,7 +128,7 @@ uv run imagegen <model-name> --help
 A companion Flask app, `imageedit`, lets you manage prompt files and trigger runs from the browser.
 
 - Start it with `uv run flask --app imageedit.app run --debug` (or `dev` depending on your Flask version).
-- The UI lists prompts in `prompts/`, supports create/save/delete, and exposes the model selector plus the same key flags (`-a`, `-i`, `-u`) as the CLI. The backend lives in `src/imageedit` with templates in `src/imageedit/templates`.
+- The UI lists prompts in `prompts/`, supports create/save/delete, adds a style prompt picker sourced from `styles/` that appends into the current prompt, and exposes the model selector plus the same key flags (`-a`, `-i`, `-u`) as the CLI. The backend lives in `src/imageedit` with templates in `src/imageedit/templates`.
 - When you click **Run**, the app persists your prompt, invokes the CLI pipeline with `--no-preview`, and shows links to the generated assets.
 - Keep this section in sync when adding registry options that need UI coverage so both CLI and Flask stay in lockstep.
 

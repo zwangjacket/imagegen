@@ -20,6 +20,7 @@ def create_app(*, config: dict[str, Any] | None = None) -> Flask:
     app.config.from_mapping(
         PROMPTS_DIR=Path("prompts"),
         ASSETS_DIR=Path("assets"),
+        STYLES_DIR=Path("styles"),
     )
     if config:
         app.config.update(config)
@@ -33,8 +34,11 @@ def create_app(*, config: dict[str, Any] | None = None) -> Flask:
         prompts_dir = Path(app.config["PROMPTS_DIR"])
         prompts_dir.mkdir(parents=True, exist_ok=True)
         prompt_names = _list_prompt_names(prompts_dir)
+        styles_dir = Path(app.config["STYLES_DIR"])
+        style_names = _list_prompt_names(styles_dir)
 
         selected_prompt = request.args.get("prompt", "").strip()
+        selected_style = request.form.get("style_name", "").strip()
         prompt_text = ""
         status_message: str | None = None
         error_message: str | None = None
@@ -59,55 +63,64 @@ def create_app(*, config: dict[str, Any] | None = None) -> Flask:
             selected_prompt = _normalize_prompt_name(raw_name)
             prompt_text = request.form.get("prompt_text", "")
 
-            if not selected_prompt:
-                error_message = "Prompt name is required."
+            if action == "append_style":
+                prompt_text = _append_style_prompt(
+                    prompt_text, styles_dir, selected_style
+                )
+                if selected_style:
+                    status_message = f"Added style '{selected_style}'."
             else:
-                prompt_path = _prompt_path(prompts_dir, selected_prompt)
-                if action == "save":
-                    _write_prompt(prompt_path, prompt_text)
-                    status_message = f"Saved prompt '{selected_prompt}'."
-                    if selected_prompt not in prompt_names:
-                        prompt_names.append(selected_prompt)
-                        prompt_names.sort()
-                elif action == "delete":
-                    if prompt_path.exists():
-                        prompt_path.unlink()
-                        status_message = f"Deleted prompt '{selected_prompt}'."
-                        prompt_names = _list_prompt_names(prompts_dir)
-                        selected_prompt = ""
-                        prompt_text = ""
-                    else:
-                        error_message = f"Prompt '{selected_prompt}' does not exist."
-                elif action == "load":
-                    if prompt_path.exists():
-                        prompt_text = prompt_path.read_text(encoding="utf-8")
-                        status_message = f"Loaded prompt '{selected_prompt}'."
-                    else:
-                        prompt_text = ""
-                        error_message = f"Prompt '{selected_prompt}' does not exist."
-                elif action == "run":
-                    if not selected_model:
-                        error_message = "A model must be selected before running."
-                    else:
-                        _write_prompt(prompt_path, prompt_text)
-                        run_result = _run_generation(
-                            selected_model=selected_model,
-                            prompt_name=selected_prompt,
-                            prompt_path=prompt_path,
-                            include_prompt_metadata=include_prompt_metadata,
-                            image_size=image_size_value,
-                            image_urls=image_urls_text if supports_image_urls else "",
-                        )
-                        if run_result["error"]:
-                            error_message = run_result["error"]
-                        else:
-                            generated_paths = run_result["paths"]
-                            asset_entries = _build_asset_entries(
-                                generated_paths, Path(app.config["ASSETS_DIR"])
-                            )
-                            status_message = run_result["message"]
+                if not selected_prompt:
+                    error_message = "Prompt name is required."
                 else:
-                    error_message = "Unknown action."
+                    prompt_path = _prompt_path(prompts_dir, selected_prompt)
+                    if action == "save":
+                        _write_prompt(prompt_path, prompt_text)
+                        status_message = f"Saved prompt '{selected_prompt}'."
+                        if selected_prompt not in prompt_names:
+                            prompt_names.append(selected_prompt)
+                            prompt_names.sort()
+                    elif action == "delete":
+                        if prompt_path.exists():
+                            prompt_path.unlink()
+                            status_message = f"Deleted prompt '{selected_prompt}'."
+                            prompt_names = _list_prompt_names(prompts_dir)
+                            selected_prompt = ""
+                            prompt_text = ""
+                        else:
+                            error_message = (
+                                f"Prompt '{selected_prompt}' does not exist."
+                            )
+                    elif action == "load":
+                        if prompt_path.exists():
+                            prompt_text = prompt_path.read_text(encoding="utf-8")
+                            status_message = f"Loaded prompt '{selected_prompt}'."
+                        else:
+                            prompt_text = ""
+                            error_message = f"Prompt '{selected_prompt}' does not exist."
+                    elif action == "run":
+                        if not selected_model:
+                            error_message = "A model must be selected before running."
+                        else:
+                            _write_prompt(prompt_path, prompt_text)
+                            run_result = _run_generation(
+                                selected_model=selected_model,
+                                prompt_name=selected_prompt,
+                                prompt_path=prompt_path,
+                                include_prompt_metadata=include_prompt_metadata,
+                                image_size=image_size_value,
+                                image_urls=image_urls_text if supports_image_urls else "",
+                            )
+                            if run_result["error"]:
+                                error_message = run_result["error"]
+                            else:
+                                generated_paths = run_result["paths"]
+                                asset_entries = _build_asset_entries(
+                                    generated_paths, Path(app.config["ASSETS_DIR"])
+                                )
+                                status_message = run_result["message"]
+                    else:
+                        error_message = "Unknown action."
 
         if request.method == "GET" and selected_prompt:
             prompt_path = _prompt_path(prompts_dir, selected_prompt)
@@ -120,6 +133,8 @@ def create_app(*, config: dict[str, Any] | None = None) -> Flask:
             "index.html",
             prompt_names=prompt_names,
             selected_prompt=selected_prompt,
+            style_names=style_names,
+            selected_style=selected_style,
             prompt_text=prompt_text,
             status_message=status_message,
             error_message=error_message,
@@ -205,6 +220,25 @@ def _normalize_prompt_name(raw_name: str) -> str:
 def _write_prompt(path: Path, text: str) -> None:
     normalized = text.replace("\r\n", "\n").replace("\r", "\n")
     path.write_text(normalized, encoding="utf-8")
+
+
+def _append_style_prompt(prompt_text: str, styles_dir: Path, style_name: str) -> str:
+    sanitized = _normalize_prompt_name(style_name)
+    if not sanitized:
+        return prompt_text
+
+    style_path = styles_dir / f"{sanitized}.txt"
+    if not style_path.exists():
+        return prompt_text
+
+    style_text = style_path.read_text(encoding="utf-8")
+    if not style_text:
+        return prompt_text
+
+    normalized_prompt = prompt_text.replace("\r\n", "\n").replace("\r", "\n")
+    if normalized_prompt:
+        return f"{normalized_prompt.rstrip()}\n{style_text}"
+    return style_text
 
 
 def _size_option_spec(model: str) -> tuple[str | None, dict[str, Any]]:
