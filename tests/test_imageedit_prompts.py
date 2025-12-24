@@ -2,7 +2,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from imageedit.app import _next_copy_name, create_app
+from imageedit.app import (
+    _next_copy_name,
+    _parse_checkbox,
+    _parse_exif_description,
+    create_app,
+)
 
 
 def _make_client(tmp_path: Path):
@@ -172,3 +177,19 @@ def test_next_copy_name_increments_suffixes():
     assert _next_copy_name("truc_copy") == "truc_copy2"
     assert _next_copy_name("truc_copy2") == "truc_copy3"
     assert _next_copy_name("truc_copy999") == "truc_copy1000"
+
+
+def test_parse_exif_description_extracts_model_and_prompt():
+    text = "Model: seedream Prompt: hello world "
+    model, prompt = _parse_exif_description(text)
+    assert model == "seedream"
+    assert prompt == "hello world"
+
+
+def test_parse_checkbox_defaults_to_true_when_missing():
+    assert _parse_checkbox([], default=True) is True
+
+
+def test_parse_checkbox_requires_on_value():
+    assert _parse_checkbox(["off"], default=True) is False
+    assert _parse_checkbox(["off", "on"], default=False) is True

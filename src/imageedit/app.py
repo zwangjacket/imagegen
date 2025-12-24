@@ -7,6 +7,8 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
+import piexif  # type: ignore[import-untyped]
+from PIL import Image
 from flask import Flask, render_template, request, send_from_directory
 
 from imagegen.imagegen import generate_images
@@ -54,7 +56,9 @@ def create_app(*, config: dict[str, Any] | None = None) -> Flask:
         image_size_value = request.form.get(
             "image_size", _default_option(selected_model, "image_size")
         )
-        include_prompt_metadata = request.form.get("include_prompt_metadata") == "on"
+        include_prompt_metadata = _parse_checkbox(
+            request.form.getlist("include_prompt_metadata"), default=True
+        )
         image_urls_text = request.form.get("image_urls", "")
         supports_image_urls = _model_supports_image_urls(selected_model)
         gallery_width = _parse_gallery_width(
@@ -70,7 +74,29 @@ def create_app(*, config: dict[str, Any] | None = None) -> Flask:
             selected_prompt = _normalize_prompt_name(raw_name)
             prompt_text = request.form.get("prompt_text", "")
 
-            if action == "append_style":
+            if action in {"asset_load", "asset_delete"}:
+                assets_dir = Path(app.config["ASSETS_DIR"])
+                asset_filename = request.form.get("asset_filename", "").strip()
+                asset_path = _resolve_asset_path(assets_dir, asset_filename)
+                if not asset_path or not asset_path.exists():
+                    error_message = "Asset file not found."
+                elif action == "asset_delete":
+                    asset_path.unlink()
+                    status_message = f"Deleted asset '{asset_filename}'."
+                else:
+                    model, prompt = _extract_prompt_from_exif(asset_path)
+                    if not prompt:
+                        error_message = (
+                            "No prompt metadata found in the selected asset."
+                        )
+                    else:
+                        prompt_text = prompt
+                        if model and model in all_models:
+                            selected_model = model
+                        status_message = (
+                            f"Loaded prompt from asset '{asset_filename}'."
+                        )
+            elif action == "append_style":
                 prompt_text = _append_style_prompt(
                     prompt_text, styles_dir, selected_style
                 )
@@ -266,13 +292,23 @@ def _append_style_prompt(prompt_text: str, styles_dir: Path, style_name: str) ->
         return prompt_text
 
     style_text = style_path.read_text(encoding="utf-8")
-    if not style_text:
-        return prompt_text
-
+    normalized_style = style_text.replace("\r\n", "\n").replace("\r", "\n")
     normalized_prompt = prompt_text.replace("\r\n", "\n").replace("\r", "\n")
-    if normalized_prompt:
-        return f"{normalized_prompt.rstrip()}\n{style_text}"
-    return style_text
+    lines = normalized_prompt.splitlines()
+    for index, line in enumerate(lines):
+        if line.lower().startswith("style:"):
+            lines = lines[:index]
+            break
+
+    base = "\n".join(lines).rstrip()
+    style_line = f"Style: {sanitized}"
+    if base and normalized_style:
+        return f"{base}\n{style_line}\n{normalized_style}"
+    if base:
+        return f"{base}\n{style_line}"
+    if normalized_style:
+        return f"{style_line}\n{normalized_style}"
+    return style_line
 
 
 def _next_copy_name(prompt_name: str) -> str:
@@ -346,12 +382,62 @@ def _build_gallery_entries(
     return entries
 
 
+def _resolve_asset_path(assets_dir: Path, filename: str) -> Path | None:
+    if not filename:
+        return None
+    if not assets_dir.is_absolute():
+        assets_dir = (Path.cwd() / assets_dir).resolve()
+    candidate = (assets_dir / filename).resolve()
+    try:
+        candidate.relative_to(assets_dir)
+    except ValueError:
+        return None
+    return candidate
+
+
+def _extract_prompt_from_exif(asset_path: Path) -> tuple[str | None, str | None]:
+    try:
+        with Image.open(asset_path) as img:
+            exif = img.getexif()
+    except Exception:
+        exif = None
+
+    description = exif.get(piexif.ImageIFD.ImageDescription) if exif else None
+    if not description:
+        return None, None
+    if isinstance(description, bytes):
+        text = description.decode("utf-8", errors="ignore")
+    else:
+        text = str(description)
+    return _parse_exif_description(text)
+
+
+def _parse_exif_description(text: str) -> tuple[str | None, str | None]:
+    prompt_index = text.find("Prompt:")
+    if prompt_index == -1:
+        return None, None
+
+    prompt_text = text[prompt_index + len("Prompt:") :].strip()
+    model_text = None
+    model_index = text.find("Model:")
+    if 0 <= model_index < prompt_index:
+        model_text = text[model_index + len("Model:") : prompt_index].strip()
+    return model_text or None, prompt_text or None
+
+
 def _list_asset_paths(assets_dir: Path) -> list[Path]:
     if not assets_dir.is_absolute():
         assets_dir = (Path.cwd() / assets_dir).resolve()
     if not assets_dir.exists():
         return []
-    candidates = [path for path in assets_dir.iterdir() if path.is_file()]
+    allowed_suffixes = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp", ".tiff"}
+    candidates = [
+        path
+        for path in assets_dir.iterdir()
+        if path.is_file()
+        and not path.name.startswith(".")
+        and path.suffix.lower() in allowed_suffixes
+    ]
     return sorted(candidates, key=lambda path: path.stat().st_mtime, reverse=True)
 
 
@@ -384,6 +470,12 @@ def _split_multivalue_field(raw_value: str) -> list[str]:
         parts = [part.strip() for part in chunk.split(",") if part.strip()]
         values.extend(parts)
     return values
+
+
+def _parse_checkbox(values: Sequence[str], *, default: bool = False) -> bool:
+    if not values:
+        return default
+    return "on" in values
 
 
 def _parse_gallery_width(raw_value: str | None) -> int:
