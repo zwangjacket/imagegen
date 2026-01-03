@@ -82,14 +82,11 @@
             placeholder="Or type custom style...">{% if selected_style not in style_names %}{{ selected_style }}{% endif %}</textarea>
           <button type="button" id="insert-style-btn" class="secondary" style="font-size:0.8rem; margin-top:2px;">Insert
             to Prompt</button>
-        </details>
-
-        <div class="control-group">
-          <div class="button-row">
+          <div class="button-row" style="margin-top: 0.5rem;">
             <button type="button" id="save-style-btn" class="secondary">Save Style</button>
             <button type="button" id="delete-style-btn" class="danger">Delete Style</button>
           </div>
-        </div>
+        </details>
 
         <div class="control-group" id="image-urls-group" {% if not supports_image_urls %}style="display:none;" {% endif
           %}>
