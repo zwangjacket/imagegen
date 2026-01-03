@@ -69,8 +69,8 @@
           </select>
         </div>
 
-        <div class="control-group" data-group="style">
-          <label for="style-name-preset">Style Modifier</label>
+        <details class="control-group" data-group="style">
+          <summary>Style Modifier</summary>
           <select id="style-name-preset" name="style_name_preset">
             <option value="" {% if not selected_style in style_names %}selected{% endif %}>-- None / Custom --
             </option>
@@ -82,7 +82,7 @@
             placeholder="Or type custom style...">{% if selected_style not in style_names %}{{ selected_style }}{% endif %}</textarea>
           <button type="button" id="insert-style-btn" class="secondary" style="font-size:0.8rem; margin-top:2px;">Insert
             to Prompt</button>
-        </div>
+        </details>
 
         <div class="control-group">
           <div class="button-row">

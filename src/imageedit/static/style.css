@@ -506,3 +506,40 @@ button.loading {
     background: var(--bg-input);
     border-color: var(--accent);
 }
+
+/* Collapsible Sections */
+details.control-group summary {
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.25rem 0;
+    user-select: none;
+    outline: none;
+}
+
+details.control-group summary::-webkit-details-marker {
+    display: none;
+}
+
+details.control-group summary::after {
+    content: '+';
+    font-weight: bold;
+    margin-left: 0.5rem;
+    font-family: monospace;
+    font-size: 1.1em;
+}
+
+details.control-group[open] summary::after {
+    content: '−';
+    /* Minus sign */
+}
+
+details.control-group[open] {
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+details.control-group:not([open]) {
+    margin-bottom: 0.5rem;
+}
