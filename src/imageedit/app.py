@@ -24,6 +24,7 @@ def create_app(*, config: dict[str, Any] | None = None) -> Flask:
         PROMPTS_DIR=Path("prompts"),
         ASSETS_DIR=Path("assets"),
         STYLES_DIR=Path("styles"),
+        MAX_CONTENT_LENGTH=100 * 1024 * 1024,
     )
     if config:
         app.config.update(config)
@@ -225,12 +226,15 @@ def create_app(*, config: dict[str, Any] | None = None) -> Flask:
         """Handle local image upload to fal cloud."""
         import tempfile
 
+        allowed_mime_types = {"image/jpeg", "image/png", "image/webp"}
         if "file" not in request.files:
             return {"error": "No file provided"}, 400
 
         file = request.files["file"]
         if file.filename == "":
             return {"error": "No file selected"}, 400
+        if file.mimetype not in allowed_mime_types:
+            return {"error": "Unsupported file type"}, 400
 
         temp_path: Path | None = None
         try:
@@ -240,6 +244,11 @@ def create_app(*, config: dict[str, Any] | None = None) -> Flask:
             ) as temp:
                 temp_path = Path(temp.name)
                 file.save(temp_path)
+            try:
+                with Image.open(temp_path) as img:
+                    img.verify()
+            except Exception:
+                return {"error": "Invalid image file"}, 400
             url = upload_image(temp_path)
             return {"url": url}
         except Exception as e:
