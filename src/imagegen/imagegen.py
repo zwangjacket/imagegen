@@ -345,7 +345,7 @@ def _apply_exif_metadata(path: Path, parsed: ParsedOptions) -> None:
         }
         if parsed.extra_metadata:
             desc_data.update(parsed.extra_metadata)
-            
+
         description = json.dumps(
             desc_data,
             ensure_ascii=False,
