@@ -94,7 +94,6 @@ def create_app(*, config: dict[str, Any] | None = None) -> Flask:
                     asset_path.unlink()
                     status_message = f"Deleted asset '{asset_filename}'."
                 else:
-
                     exif_data = _extract_prompt_from_exif(asset_path)
                     if not exif_data.get("prompt"):
                         error_message = (
@@ -108,10 +107,10 @@ def create_app(*, config: dict[str, Any] | None = None) -> Flask:
 
                         if exif_data.get("model") and exif_data["model"] in all_models:
                             selected_model = exif_data["model"]
-                        
+
                         if exif_data.get("style"):
                             selected_style = exif_data["style"]
-                        
+
                         if exif_data.get("prompt_name"):
                             selected_prompt = exif_data["prompt_name"]
 
@@ -400,7 +399,7 @@ def _run_generation(
         args.extend(["-i", image_size.strip()])
     for url in _split_multivalue_field(image_urls):
         args.extend(["-u", url])
-    
+
     # Add extra metadata for EXIF
     meta = {
         "prompt_name": prompt_name,
@@ -620,7 +619,7 @@ def _parse_exif_description(text: str) -> dict[str, Any]:
     model_index = text.find("Model:")
     if 0 <= model_index < prompt_index:
         model_text = text[model_index + len("Model:") : prompt_index].strip()
-    
+
     result["prompt"] = prompt_text
     result["model"] = model_text
     return result
