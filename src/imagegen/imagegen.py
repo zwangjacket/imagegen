@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import secrets
 import subprocess
 import sys
 import time
@@ -30,20 +29,20 @@ def _truncate_to_word_boundary(text: str, max_chars: int = 50) -> str:
     """Truncate text to max_chars, rounding down to nearest complete word."""
     if len(text) <= max_chars:
         return text
-    
+
     # Find the last space within the limit
     truncated = text[:max_chars]
-    last_space = truncated.rfind(' ')
-    
+    last_space = truncated.rfind(" ")
+
     if last_space > 0:
         return truncated[:last_space]
-    
+
     # If no space found, just truncate at max_chars
     return truncated
 
 
 def generate_images(
-        parsed: ParsedOptions, *, output_dir: Path | None = None
+    parsed: ParsedOptions, *, output_dir: Path | None = None
 ) -> list[Path]:
     """Invoke the target fal endpoint and download any returned images."""
 
@@ -65,7 +64,7 @@ def generate_images(
     _emit_elapsed(elapsed)
 
     payload = _coerce_payload(invocation)
-    
+
     # Generate timestamp for filename (YYYYMMDD_HHMMSS)
     timestamp = time.strftime("%Y%m%d_%H%M%S")
 
@@ -79,21 +78,23 @@ def generate_images(
 
     # Get prompt name from file parameter (if exists)
     prompt_name = _base_name_from_params(arguments)
-    
+
     # Get prompt text from parameters
     prompt_text = arguments.get("prompt", "")
     if isinstance(prompt_text, str):
         prompt_text = prompt_text.strip()
     else:
         prompt_text = ""
-    
+
     # Build base component based on what we have
     if prompt_name:
         # If we have a prompt name, use: prompt_name + truncated_prompt_text
         sanitized_name = _sanitize_component(prompt_name)
         sanitized_text = _sanitize_component(prompt_text)
         truncated_text = _truncate_to_word_boundary(sanitized_text, max_chars=50)
-        base_component = f"{sanitized_name}-{truncated_text}" if truncated_text else sanitized_name
+        base_component = (
+            f"{sanitized_name}-{truncated_text}" if truncated_text else sanitized_name
+        )
     elif prompt_text:
         # If no prompt name but we have prompt text, use truncated prompt text
         sanitized_text = _sanitize_component(prompt_text)
@@ -103,7 +104,7 @@ def generate_images(
         base_component = _sanitize_component(parsed.model)
 
     written: list[Path] = []
-    for index, url in enumerate(urls, start=1):
+    for _index, url in enumerate(urls, start=1):
         data, content_type = _download(url)
         suffix = _extension_for_url(url, content_type)
         convert_to_jpg = parsed.as_jpg and suffix == ".png"
@@ -171,7 +172,7 @@ def _iter_payload(value: Any) -> Iterable[Any]:
             for nested in reversed(list(current.values())):
                 stack.append(nested)
         elif isinstance(current, Sequence) and not isinstance(
-                current, (str, bytes, bytearray)
+            current, (str, bytes, bytearray)
         ):
             for item in reversed(list(current)):
                 stack.append(item)
@@ -189,7 +190,7 @@ def _search_first(value: Any, key: str) -> Any:
                     return map_value
                 stack.append(map_value)
         elif isinstance(current, Sequence) and not isinstance(
-                current, (str, bytes, bytearray)
+            current, (str, bytes, bytearray)
         ):
             stack.extend(current)
     return None
@@ -259,7 +260,7 @@ def _require_fal_client():
 
 
 def _emit_request_info(
-        endpoint: str, call_type: str, arguments: Mapping[str, Any]
+    endpoint: str, call_type: str, arguments: Mapping[str, Any]
 ) -> None:
     print("Request:")
     pprint(
@@ -286,7 +287,7 @@ def _handle_post_write(path: Path) -> None:
     if sys.platform != "darwin":
         return
     try:
-        subprocess.run(["/usr/bin/open", str(path)], check=False) # noqa: S603 - intended.
+        subprocess.run(["/usr/bin/open", str(path)], check=False)  # noqa: S603 - intended.
     except OSError:
         pass
 
@@ -327,7 +328,7 @@ def upload_image(path: Path) -> str:
     # verify path exists
     if not path.exists():
         raise FileNotFoundError(f"File not found: {path}")
-    
+
     url = client.upload_file(str(path))
     return url
 

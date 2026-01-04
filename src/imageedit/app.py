@@ -3,15 +3,14 @@
 from __future__ import annotations
 
 import re
+import tempfile
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
 import piexif  # type: ignore[import-untyped]
-from PIL import Image
-import tempfile
-from werkzeug.utils import secure_filename
 from flask import Flask, jsonify, render_template, request, send_from_directory
+from PIL import Image
 
 from imagegen.imagegen import generate_images, upload_image
 from imagegen.options import parse_args
@@ -46,7 +45,7 @@ def create_app(*, config: dict[str, Any] | None = None) -> Flask:
         selected_style = (
             request.form.get("style_name_custom", "").strip()
             or request.form.get("style_name_preset", "").strip()
-            or request.form.get("style_name", "").strip() 
+            or request.form.get("style_name", "").strip()
         )
         prompt_text = ""
         status_message: str | None = None
@@ -106,9 +105,7 @@ def create_app(*, config: dict[str, Any] | None = None) -> Flask:
                         )
                         if model and model in all_models:
                             selected_model = model
-                        status_message = (
-                            f"Loaded prompt from asset '{asset_filename}'."
-                        )
+                        status_message = f"Loaded prompt from asset '{asset_filename}'."
             elif action == "append_style":
                 prompt_text = _append_style_prompt(
                     prompt_text, styles_dir, selected_style
@@ -191,25 +188,26 @@ def create_app(*, config: dict[str, Any] | None = None) -> Flask:
     @app.route("/api/upload", methods=["POST"])
     def api_upload():
         """Handle local image upload to fal cloud."""
-        import tempfile
-        
+
         if "file" not in request.files:
             return {"error": "No file provided"}, 400
-        
+
         file = request.files["file"]
         if file.filename == "":
             return {"error": "No file selected"}, 400
-        
+
         try:
             # Save to temp file and upload
-            with tempfile.NamedTemporaryFile(delete=False, suffix=Path(file.filename).suffix) as temp:
+            with tempfile.NamedTemporaryFile(
+                delete=False, suffix=Path(file.filename).suffix
+            ) as temp:
                 temp_path = Path(temp.name)
                 file.save(temp_path)
                 try:
                     url = upload_image(temp_path)
                 finally:
                     temp_path.unlink()  # Clean up temp file
-                
+
             return {"url": url}
         except Exception as e:
             return {"error": str(e)}, 500
@@ -220,10 +218,9 @@ def create_app(*, config: dict[str, Any] | None = None) -> Flask:
         sizes = _get_allowed_sizes(model)
         default = _default_option(model, "image_size")
         supports_urls = _model_supports_image_urls(model)
-        return jsonify({"sizes": sizes, "default": default, "supports_image_urls": supports_urls})
-
-
-
+        return jsonify(
+            {"sizes": sizes, "default": default, "supports_image_urls": supports_urls}
+        )
 
     @app.route("/api/prompt/<name>")
     def api_get_prompt(name: str):
@@ -251,7 +248,7 @@ def create_app(*, config: dict[str, Any] | None = None) -> Flask:
         data = request.json
         if not data or "name" not in data or "text" not in data:
             return jsonify({"error": "Missing name or text"}), 400
-        
+
         name = data["name"].strip()
         text = data["text"]
         if not name:
@@ -259,7 +256,7 @@ def create_app(*, config: dict[str, Any] | None = None) -> Flask:
 
         styles_dir = Path(app.config["STYLES_DIR"])
         styles_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # Determine unique name
         sanitized = _normalize_prompt_name(name)
         base_name = sanitized
@@ -270,13 +267,12 @@ def create_app(*, config: dict[str, Any] | None = None) -> Flask:
             if not style_path.exists():
                 break
             counter += 1
-        
+
         try:
             _write_prompt(style_path, text)
             return jsonify({"success": True, "saved_name": candidate_name})
         except Exception as e:
             return jsonify({"error": str(e)}), 500
-
 
     @app.route("/api/delete-style", methods=["POST"])
     def api_delete_style():
@@ -284,17 +280,17 @@ def create_app(*, config: dict[str, Any] | None = None) -> Flask:
         data = request.json
         if not data or "name" not in data:
             return jsonify({"error": "Missing name"}), 400
-        
+
         name = data["name"].strip()
         if not name:
             return jsonify({"error": "Style name cannot be empty"}), 400
 
         styles_dir = Path(app.config["STYLES_DIR"])
         style_path = _prompt_path(styles_dir, name)
-        
+
         if not style_path.exists():
-             return jsonify({"error": f"Style '{name}' not found"}), 404
-        
+            return jsonify({"error": f"Style '{name}' not found"}), 404
+
         try:
             style_path.unlink()
             return jsonify({"success": True, "deleted_name": name})
@@ -307,7 +303,7 @@ def create_app(*, config: dict[str, Any] | None = None) -> Flask:
         data = request.json
         if not data or "name" not in data or "text" not in data:
             return jsonify({"error": "Missing name or text"}), 400
-        
+
         name = data["name"].strip()
         text = data["text"]
         if not name:
@@ -315,10 +311,10 @@ def create_app(*, config: dict[str, Any] | None = None) -> Flask:
 
         prompts_dir = Path(app.config["PROMPTS_DIR"])
         prompts_dir.mkdir(parents=True, exist_ok=True)
-        
+
         sanitized = _normalize_prompt_name(name)
         prompt_path = prompts_dir / f"{sanitized}.txt"
-        
+
         try:
             _write_prompt(prompt_path, text)
             return jsonify({"success": True, "saved_name": sanitized})
@@ -331,17 +327,17 @@ def create_app(*, config: dict[str, Any] | None = None) -> Flask:
         data = request.json
         if not data or "name" not in data:
             return jsonify({"error": "Missing name"}), 400
-        
+
         name = data["name"].strip()
         if not name:
             return jsonify({"error": "Prompt name cannot be empty"}), 400
 
         prompts_dir = Path(app.config["PROMPTS_DIR"])
         prompt_path = _prompt_path(prompts_dir, name)
-        
+
         if not prompt_path.exists():
-             return jsonify({"error": f"Prompt '{name}' not found"}), 404
-        
+            return jsonify({"error": f"Prompt '{name}' not found"}), 404
+
         try:
             prompt_path.unlink()
             return jsonify({"success": True, "deleted_name": name})
@@ -354,7 +350,7 @@ def create_app(*, config: dict[str, Any] | None = None) -> Flask:
         data = request.json
         if not data or "name" not in data or "text" not in data:
             return jsonify({"error": "Missing name or text"}), 400
-        
+
         name = data["name"].strip()
         text = data["text"]
         if not name:
@@ -362,11 +358,11 @@ def create_app(*, config: dict[str, Any] | None = None) -> Flask:
 
         prompts_dir = Path(app.config["PROMPTS_DIR"])
         prompts_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # Generate new name using existing logic
         duplicate_name = _next_copy_name(name)
         duplicate_path = _prompt_path(prompts_dir, duplicate_name)
-        
+
         try:
             _write_prompt(duplicate_path, text)
             return jsonify({"success": True, "duplicated_name": duplicate_name})
@@ -587,9 +583,6 @@ def _parse_exif_description(text: str) -> tuple[str | None, str | None]:
     if 0 <= model_index < prompt_index:
         model_text = text[model_index + len("Model:") : prompt_index].strip()
     return model_text or None, prompt_text or None
-
-
-
 
 
 def _normalize_exif_text(text: str) -> str:
