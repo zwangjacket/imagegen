@@ -95,15 +95,10 @@ def set_exif_data(
     ).encode()
     zeroth[piexif.ImageIFD.Orientation] = 1  # Horizontal (normal)
     if description:
-        d = ""
-        # Include Model Parameters and Prompt, Remove Newlines
-        if model:
-            d += f"Model: {model} "
-        d += f"Prompt: {description} "
-        d = d.replace("\n", " ")
-
-        # Store UTF-8 encoded prompt text for later inspection
-        zeroth[piexif.ImageIFD.ImageDescription] = d.encode("utf-8", errors="ignore")
+        normalized = description.replace("\n", " ")
+        zeroth[piexif.ImageIFD.ImageDescription] = normalized.encode(
+            "utf-8", errors="ignore"
+        )
 
     # Populate the date fields in the EXIF section
     exif_section[piexif.ExifIFD.DateTimeOriginal] = formatted_date.encode()
