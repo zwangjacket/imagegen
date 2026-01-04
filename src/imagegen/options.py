@@ -380,8 +380,7 @@ def _add_common_options(parser: argparse.ArgumentParser) -> None:
         dest="jpg_options",
         default=None,
         help=(
-            "comma-separated JPEG options (quality, subsampling, progressive, "
-            "optimize)"
+            "comma-separated JPEG options (quality, subsampling, progressive, optimize)"
         ),
     )
 
@@ -561,9 +560,7 @@ def parse_args(
     if model_name == "nano-banana" and "image_size" in params:
         params["aspect_ratio"] = params.pop("image_size")
 
-    jpg_options = _parse_jpg_options(
-        getattr(ns, "jpg_options", None), model_parser
-    )
+    jpg_options = _parse_jpg_options(getattr(ns, "jpg_options", None), model_parser)
 
     return ParsedOptions(
         model=model_name,
@@ -596,9 +593,7 @@ def _parse_jpg_options(
         key, value = (part.strip() for part in entry.split("=", 1))
         if key not in _JPG_OPTION_DEFAULTS:
             valid = ", ".join(_JPG_OPTION_DEFAULTS.keys())
-            parser.error(
-                f"unknown jpg option '{key}' (valid options: {valid})"
-            )
+            parser.error(f"unknown jpg option '{key}' (valid options: {valid})")
         if _JPG_OPTION_TYPES[key] is bool:
             normalized = value.lower()
             if normalized in {"true", "1", "yes"}:
