@@ -1,4 +1,5 @@
 import importlib
+import json
 from io import BytesIO
 import sys
 import types
@@ -77,7 +78,9 @@ def test_generate_images_run_invocation(monkeypatch, tmp_path, reload_imagegen):
 
     perf_values = iter([100.0, 101.5])
     monkeypatch.setattr(mod.time, "perf_counter", lambda: next(perf_values))
-    monkeypatch.setattr(mod.time, "strftime", lambda *_args, **_kwargs: "20260104_114516")
+    monkeypatch.setattr(
+        mod.time, "strftime", lambda *_args, **_kwargs: "20260104_114516"
+    )
 
     responses = iter(
         [
@@ -167,7 +170,9 @@ def test_generate_images_subscribe(monkeypatch, tmp_path, reload_imagegen):
 
     perf_values = iter([200.0, 205.25])
     monkeypatch.setattr(mod.time, "perf_counter", lambda: next(perf_values))
-    monkeypatch.setattr(mod.time, "strftime", lambda *_args, **_kwargs: "20260104_114516")
+    monkeypatch.setattr(
+        mod.time, "strftime", lambda *_args, **_kwargs: "20260104_114516"
+    )
 
     monkeypatch.setattr(
         mod.urllib.request,
@@ -226,7 +231,9 @@ def test_generate_images_adds_prompt_description_when_requested(
     monkeypatch.setattr(mod, "_handle_post_write", lambda path: None)
     monkeypatch.setattr(mod, "_emit_request_info", lambda *args, **kwargs: None)
     monkeypatch.setattr(mod, "_emit_elapsed", lambda *args, **kwargs: None)
-    monkeypatch.setattr(mod.time, "strftime", lambda *_args, **_kwargs: "20260104_114516")
+    monkeypatch.setattr(
+        mod.time, "strftime", lambda *_args, **_kwargs: "20260104_114516"
+    )
 
     exif_calls = []
     monkeypatch.setattr(
@@ -248,10 +255,21 @@ def test_generate_images_adds_prompt_description_when_requested(
 
     expected = tmp_path / "dreamy-forest-scene-20260104_114516.png"
     assert output == [expected]
+    expected_description = json.dumps(
+        {
+            "model": parsed.model,
+            "endpoint": parsed.endpoint,
+            "call": parsed.call,
+            "arguments": {"prompt": "  dreamy forest scene  "},
+        },
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    )
     assert exif_calls == [
         (
             expected,
-            {"description": "dreamy forest scene", "model": parsed.model},
+            {"description": expected_description, "model": parsed.model},
         ),
     ]
 
@@ -276,7 +294,9 @@ def test_generate_images_skips_preview_when_disabled(
     monkeypatch.setattr(mod, "_handle_post_write", lambda path: opened.append(path))
     monkeypatch.setattr(mod, "_emit_request_info", lambda *args, **kwargs: None)
     monkeypatch.setattr(mod, "_emit_elapsed", lambda *args, **kwargs: None)
-    monkeypatch.setattr(mod.time, "strftime", lambda *_args, **_kwargs: "20260104_114516")
+    monkeypatch.setattr(
+        mod.time, "strftime", lambda *_args, **_kwargs: "20260104_114516"
+    )
     monkeypatch.setattr(
         mod.exif,
         "set_exif_data",
@@ -320,7 +340,9 @@ def test_generate_images_converts_png_to_jpg(monkeypatch, tmp_path, reload_image
     monkeypatch.setattr(mod, "_handle_post_write", lambda path: None)
     monkeypatch.setattr(mod, "_emit_request_info", lambda *args, **kwargs: None)
     monkeypatch.setattr(mod, "_emit_elapsed", lambda *args, **kwargs: None)
-    monkeypatch.setattr(mod.time, "strftime", lambda *_args, **_kwargs: "20260104_114516")
+    monkeypatch.setattr(
+        mod.time, "strftime", lambda *_args, **_kwargs: "20260104_114516"
+    )
     monkeypatch.setattr(
         mod.exif,
         "set_exif_data",

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import subprocess
 import sys
 import time
@@ -295,11 +296,19 @@ def _handle_post_write(path: Path) -> None:
 def _apply_exif_metadata(path: Path, parsed: ParsedOptions) -> None:
     description: str | None = None
     if parsed.add_prompt_metadata:
-        prompt_value = parsed.params.get("prompt")
-        if isinstance(prompt_value, str):
-            stripped = prompt_value.strip()
-            if stripped:
-                description = stripped
+        arguments = dict(parsed.params)
+        arguments.pop("file", None)
+        description = json.dumps(
+            {
+                "model": parsed.model,
+                "endpoint": parsed.endpoint,
+                "call": parsed.call,
+                "arguments": arguments,
+            },
+            ensure_ascii=False,
+            separators=(",", ":"),
+            sort_keys=True,
+        )
 
     model = f"{parsed.model}"
     success = exif.set_exif_data(path, description=description, model=model)

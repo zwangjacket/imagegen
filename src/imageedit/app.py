@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 import tempfile
 from collections.abc import Sequence
@@ -573,6 +574,26 @@ def _extract_prompt_from_exif(asset_path: Path) -> tuple[str | None, str | None]
 
 
 def _parse_exif_description(text: str) -> tuple[str | None, str | None]:
+    trimmed = text.strip()
+    if trimmed.startswith("{"):
+        try:
+            data = json.loads(trimmed)
+        except json.JSONDecodeError:
+            data = None
+        if isinstance(data, dict):
+            arguments = data.get("arguments", {})
+            if isinstance(arguments, dict):
+                prompt_value = arguments.get("prompt")
+            else:
+                prompt_value = None
+            model_value = data.get("model")
+            prompt_text = (
+                prompt_value.strip() if isinstance(prompt_value, str) else None
+            )
+            model_text = model_value.strip() if isinstance(model_value, str) else None
+            if prompt_text or model_text:
+                return model_text or None, prompt_text or None
+
     prompt_index = text.find("Prompt:")
     if prompt_index == -1:
         return None, None

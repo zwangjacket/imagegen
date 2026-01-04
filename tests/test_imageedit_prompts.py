@@ -182,7 +182,7 @@ def test_next_copy_name_increments_suffixes():
 
 
 def test_parse_exif_description_extracts_model_and_prompt():
-    text = "Model: seedream Prompt: hello world "
+    text = '{"arguments":{"prompt":"hello world"},"call":"run","endpoint":"x","model":"seedream"}'
     model, prompt = _parse_exif_description(text)
     assert model == "seedream"
     assert prompt == "hello world"

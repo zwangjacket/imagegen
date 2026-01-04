@@ -24,10 +24,7 @@ def test_set_exif_data_rewrites_exif_and_description(tmp_path):
     )
 
     metadata = piexif.load(str(image_path))
-    assert (
-        metadata["0th"][piexif.ImageIFD.ImageDescription]
-        == b"Prompt: enchanted forest "
-    )
+    assert metadata["0th"][piexif.ImageIFD.ImageDescription] == b"enchanted forest"
     assert metadata["0th"][piexif.ImageIFD.Make] == exif.DEFAULT_CAMERA_MAKE.encode()
 
     # Running again without a description should fully rewrite EXIF and omit the tag
