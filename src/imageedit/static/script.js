@@ -5,7 +5,6 @@ document.addEventListener('DOMContentLoaded', () => {
     initThemeToggle();
     initModelSizeSync();
     initDualInputs();
-    initPromptAutoLoad();
     initStyleControls();
     initImageSourceControls();
     initPromptControls();
@@ -220,21 +219,28 @@ function initStyleControls() {
  * - Deleting existing prompts
  */
 function initPromptControls() {
-    const promptSelect = document.getElementById('prompt-name-preset');
+    const promptInput = document.getElementById('prompt-name-preset');
     const promptTextarea = document.getElementById('prompt-text');
     const savePromptBtn = document.getElementById('save-prompt-btn');
     const deletePromptBtn = document.getElementById('delete-prompt-btn');
 
-    if (!promptSelect || !promptTextarea) return;
+    if (!promptInput || !promptTextarea) return;
 
-    // 1. Fetch content on selection
-    promptSelect.addEventListener('change', async () => {
-        const name = promptSelect.value;
+    const hasPromptOption = (name) => {
+        const listId = promptInput.getAttribute('list');
+        if (!listId) return false;
+        const list = document.getElementById(listId);
+        if (!list) return false;
+        return Array.from(list.options).some(option => option.value === name);
+    };
+
+    const loadPrompt = async (name) => {
         if (!name) {
             // If "New / Custom" (empty value) is selected, maybe leave as is?
             // For prompts, let's NOT clear the main textarea because user might be typing a "New" prompt.
             return;
         }
+        if (!hasPromptOption(name)) return;
 
         try {
             const response = await fetch(`/api/prompt/${encodeURIComponent(name)}`);
@@ -245,6 +251,14 @@ function initPromptControls() {
         } catch (err) {
             console.error('Failed to load prompt:', err);
         }
+    };
+
+    // 1. Fetch content on selection
+    promptInput.addEventListener('change', async () => {
+        await loadPrompt(promptInput.value);
+    });
+    promptInput.addEventListener('input', async () => {
+        await loadPrompt(promptInput.value);
     });
 
     // 2. Save Prompt Button
@@ -267,7 +281,7 @@ function initPromptControls() {
             }
 
             // Pre-populate name if a preset is selected
-            const currentName = promptSelect.value;
+            const currentName = promptInput.value;
             if (currentName) {
                 nameInput.value = currentName;
             }
@@ -336,7 +350,7 @@ function initPromptControls() {
         };
 
         const openModal = () => {
-            const name = promptSelect.value;
+            const name = promptInput.value;
             if (!name) return; // Do nothing if no prompt selected
 
             nameDisplay.textContent = name;
@@ -390,7 +404,7 @@ function initPromptControls() {
         duplicatePromptBtn.addEventListener('click', async (e) => {
             e.preventDefault();
 
-            const name = promptSelect.value;
+            const name = promptInput.value;
             const text = promptTextarea.value.trim();
 
             if (!name) {
@@ -736,31 +750,3 @@ function initModelSizeSync() {
         }
     });
 }
-
-/**
- * Automatically loads prompt text when a preset is selected.
- */
-function initPromptAutoLoad() {
-    const promptSelect = document.getElementById('prompt-name-preset');
-    const promptText = document.getElementById('prompt-text');
-
-    if (!promptSelect || !promptText) return;
-
-    promptSelect.addEventListener('change', async () => {
-        const name = promptSelect.value;
-        if (!name) return; // Do not clear on 'New/Custom' to allow forking
-
-        try {
-            const response = await fetch(`/api/prompt/${encodeURIComponent(name)}`);
-            if (!response.ok) return;
-
-            const data = await response.json();
-            // Update the textarea
-            promptText.value = data.text || '';
-
-        } catch (err) {
-            console.error('Failed to load prompt:', err);
-        }
-    });
-}
-

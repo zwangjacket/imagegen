@@ -151,7 +151,6 @@ def create_app(*, config: dict[str, Any] | None = None) -> Flask:
                     error_message = f"Unknown action: {action}"
                 # If action is empty (e.g. auto-submit on change), just re-render
 
-
         if request.method == "GET" and selected_prompt:
             prompt_path = _prompt_path(prompts_dir, selected_prompt)
             if prompt_path.exists():

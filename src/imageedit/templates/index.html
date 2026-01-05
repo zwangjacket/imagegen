@@ -34,13 +34,13 @@
       <form method="post" id="main-form" class="editor-layout">
         <div class="control-group" data-group="prompt">
           <label for="prompt-name-preset">Prompt Name</label>
-          <select id="prompt-name-preset" name="prompt_name_preset">
-            <option value="" {% if not selected_prompt in prompt_names %}selected{% endif %}>-- New / Custom --
-            </option>
+          <input id="prompt-name-preset" name="prompt_name" type="text" list="prompt-options"
+            placeholder="e.g. cyborg_ninja" value="{{ selected_prompt }}" autocomplete="off">
+          <datalist id="prompt-options">
             {% for prompt in prompt_names %}
-            <option value="{{ prompt }}" {% if prompt==selected_prompt %}selected{% endif %}>{{ prompt }}</option>
+            <option value="{{ prompt }}"></option>
             {% endfor %}
-          </select>
+          </datalist>
           <button type="button" id="duplicate-prompt-btn" class="secondary"
             style="font-size:0.8rem; margin-top:2px;">Duplicate</button>
           <div class="button-row" style="margin-top: 5px;">
