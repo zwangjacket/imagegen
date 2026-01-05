@@ -469,7 +469,7 @@ function initImageSourceControls() {
                 uploadBtn.textContent = 'Uploading...';
                 uploadBtn.disabled = true;
 
-                const response = await fetch('/api/upload-image', {
+                const response = await fetch('/api/upload', {
                     method: 'POST',
                     body: formData
                 });
@@ -511,7 +511,7 @@ function renderImagePreviews(text, container) {
         return;
     }
 
-    urls.forEach(url => {
+    urls.forEach((url, index) => {
         const item = document.createElement('div');
         item.className = 'image-preview-item';
 
@@ -524,12 +524,37 @@ function renderImagePreviews(text, container) {
                 <div class="image-preview-error">
                     <span>Broken Link<br>${url.substring(0, 20)}...</span>
                 </div>
+                <button type="button" class="delete-btn" title="Remove">×</button>
             `;
+            // Re-attach listener to the new button inside error div
+            const btn = item.querySelector('.delete-btn');
+            if (btn) btn.onclick = () => removeUrl(index);
+        };
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.type = 'button';
+        deleteBtn.className = 'delete-btn';
+        deleteBtn.innerHTML = '×';
+        deleteBtn.title = 'Remove';
+        deleteBtn.onclick = (e) => {
+            e.stopPropagation(); // Prevent bubbling if needed
+            removeUrl(index);
         };
 
         item.appendChild(img);
+        item.appendChild(deleteBtn);
         container.appendChild(item);
     });
+
+    function removeUrl(indexToRemove) {
+        // Remove item at index
+        urls.splice(indexToRemove, 1);
+        // Update textarea
+        const newText = urls.join('\n');
+        document.getElementById('image-urls').value = newText;
+        // Re-render
+        renderImagePreviews(newText, container);
+    }
 }
 
 
