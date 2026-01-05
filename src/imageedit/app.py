@@ -147,8 +147,10 @@ def create_app(*, config: dict[str, Any] | None = None) -> Flask:
                                 generated_paths, Path(app.config["ASSETS_DIR"])
                             )
                             status_message = run_result["message"]
-                else:
-                    error_message = "Unknown action."
+                elif action:
+                    error_message = f"Unknown action: {action}"
+                # If action is empty (e.g. auto-submit on change), just re-render
+
 
         if request.method == "GET" and selected_prompt:
             prompt_path = _prompt_path(prompts_dir, selected_prompt)
