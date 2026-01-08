@@ -92,6 +92,16 @@ def create_app(*, config: dict[str, Any] | None = None) -> Flask:
                     error_message = "Asset file not found."
                 elif action == "asset_delete":
                     asset_path.unlink()
+                    
+                    # Also delete from assets_clean if it exists
+                    try:
+                        clean_dir = assets_dir.parent / f"{assets_dir.name}_clean"
+                        clean_path = clean_dir / asset_path.name
+                        if clean_path.exists():
+                            clean_path.unlink()
+                    except Exception as e:
+                        print(f"Warning: failed to delete clean asset: {e}")
+
                     status_message = f"Deleted asset '{asset_filename}'."
                 else:
                     exif_data = _extract_prompt_from_exif(asset_path)
