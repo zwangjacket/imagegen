@@ -9,10 +9,17 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
-import piexif  # type: ignore[import-untyped]
 from flask import Flask, jsonify, render_template, request, send_from_directory
-from PIL import Image
 
+from image_common.exif import extract_prompt_from_exif
+from image_common.prompts import (
+    list_prompt_names,
+    normalize_prompt_name,
+    prompt_path,
+    read_prompt,
+    split_multivalue_field,
+    write_prompt,
+)
 from imagegen.imagegen import generate_images, save_clean_copy_enabled, upload_image
 from imagegen.options import parse_args
 from imagegen.registry import MODEL_REGISTRY
@@ -38,9 +45,9 @@ def create_app(*, config: dict[str, Any] | None = None) -> Flask:
 
         prompts_dir = Path(app.config["PROMPTS_DIR"])
         prompts_dir.mkdir(parents=True, exist_ok=True)
-        prompt_names = _list_prompt_names(prompts_dir)
+        prompt_names = list_prompt_names(prompts_dir)
         styles_dir = Path(app.config["STYLES_DIR"])
-        style_names = _list_prompt_names(styles_dir)
+        style_names = list_prompt_names(styles_dir)
 
         selected_prompt = request.args.get("prompt", "").strip()
         selected_style = (
@@ -81,7 +88,7 @@ def create_app(*, config: dict[str, Any] | None = None) -> Flask:
                 or request.form.get("prompt_name_preset", "").strip()
                 or request.form.get("prompt_name", "").strip()
             )
-            selected_prompt = _normalize_prompt_name(raw_name)
+            selected_prompt = normalize_prompt_name(raw_name)
             prompt_text = request.form.get("prompt_text", "")
 
             if action in {"asset_load", "asset_delete"}:
@@ -105,7 +112,7 @@ def create_app(*, config: dict[str, Any] | None = None) -> Flask:
 
                     status_message = f"Deleted asset '{asset_filename}'."
                 else:
-                    exif_data = _extract_prompt_from_exif(asset_path)
+                    exif_data = extract_prompt_from_exif(asset_path)
                     if not exif_data.get("prompt"):
                         error_message = (
                             "No prompt metadata found in the selected asset."
@@ -139,12 +146,12 @@ def create_app(*, config: dict[str, Any] | None = None) -> Flask:
                         error_message = "A model must be selected before running."
                     else:
                         # Define prompt_path for the run action
-                        prompt_path = _prompt_path(prompts_dir, selected_prompt)
-                        _write_prompt(prompt_path, prompt_text)
+                        prompt_file = prompt_path(prompts_dir, selected_prompt)
+                        write_prompt(prompt_file, prompt_text)
                         run_result = _run_generation(
                             selected_model=selected_model,
                             prompt_name=selected_prompt,
-                            prompt_path=prompt_path,
+                            prompt_path=prompt_file,
                             include_prompt_metadata=include_prompt_metadata,
                             image_size=image_size_value,
                             image_urls=image_urls_text if supports_image_urls else "",
@@ -163,9 +170,9 @@ def create_app(*, config: dict[str, Any] | None = None) -> Flask:
                 # If action is empty (e.g. auto-submit on change), just re-render
 
         if request.method == "GET" and selected_prompt:
-            prompt_path = _prompt_path(prompts_dir, selected_prompt)
-            if prompt_path.exists():
-                prompt_text = prompt_path.read_text(encoding="utf-8")
+            prompt_file = prompt_path(prompts_dir, selected_prompt)
+            if prompt_file.exists():
+                prompt_text = read_prompt(prompt_file)
 
         allowed_sizes = _get_allowed_sizes(selected_model)
         assets_dir = Path(app.config["ASSETS_DIR"])
@@ -248,9 +255,9 @@ def create_app(*, config: dict[str, Any] | None = None) -> Flask:
     def api_get_prompt(name: str):
         """Return prompt text for a given prompt name."""
         prompts_dir = Path(app.config["PROMPTS_DIR"])
-        prompt_path = _prompt_path(prompts_dir, name)
-        if prompt_path.exists():
-            text = prompt_path.read_text(encoding="utf-8")
+        prompt_file = prompt_path(prompts_dir, name)
+        if prompt_file.exists():
+            text = read_prompt(prompt_file)
             return jsonify({"text": text})
         return jsonify({"text": ""}), 404
 
@@ -258,9 +265,9 @@ def create_app(*, config: dict[str, Any] | None = None) -> Flask:
     def api_get_style(name: str):
         """Return style text for a given style name."""
         styles_dir = Path(app.config["STYLES_DIR"])
-        style_path = _prompt_path(styles_dir, name)  # Reuse _prompt_path logic
+        style_path = prompt_path(styles_dir, name)  # Reuse prompt_path logic
         if style_path.exists():
-            text = style_path.read_text(encoding="utf-8")
+            text = read_prompt(style_path)
             return jsonify({"text": text})
         return jsonify({"text": ""}), 404
 
@@ -280,7 +287,7 @@ def create_app(*, config: dict[str, Any] | None = None) -> Flask:
         styles_dir.mkdir(parents=True, exist_ok=True)
 
         # Determine unique name
-        sanitized = _normalize_prompt_name(name)
+        sanitized = normalize_prompt_name(name)
         base_name = sanitized
         counter = 0
         while True:
@@ -291,7 +298,7 @@ def create_app(*, config: dict[str, Any] | None = None) -> Flask:
             counter += 1
 
         try:
-            _write_prompt(style_path, text)
+            write_prompt(style_path, text)
             return jsonify({"success": True, "saved_name": candidate_name})
         except Exception as e:
             return jsonify({"error": str(e)}), 500
@@ -308,7 +315,7 @@ def create_app(*, config: dict[str, Any] | None = None) -> Flask:
             return jsonify({"error": "Style name cannot be empty"}), 400
 
         styles_dir = Path(app.config["STYLES_DIR"])
-        style_path = _prompt_path(styles_dir, name)
+        style_path = prompt_path(styles_dir, name)
 
         if not style_path.exists():
             return jsonify({"error": f"Style '{name}' not found"}), 404
@@ -334,11 +341,11 @@ def create_app(*, config: dict[str, Any] | None = None) -> Flask:
         prompts_dir = Path(app.config["PROMPTS_DIR"])
         prompts_dir.mkdir(parents=True, exist_ok=True)
 
-        sanitized = _normalize_prompt_name(name)
-        prompt_path = prompts_dir / f"{sanitized}.txt"
+        sanitized = normalize_prompt_name(name)
+        prompt_file = prompt_path(prompts_dir, sanitized)
 
         try:
-            _write_prompt(prompt_path, text)
+            write_prompt(prompt_file, text)
             return jsonify({"success": True, "saved_name": sanitized})
         except Exception as e:
             return jsonify({"error": str(e)}), 500
@@ -355,13 +362,13 @@ def create_app(*, config: dict[str, Any] | None = None) -> Flask:
             return jsonify({"error": "Prompt name cannot be empty"}), 400
 
         prompts_dir = Path(app.config["PROMPTS_DIR"])
-        prompt_path = _prompt_path(prompts_dir, name)
+        prompt_file = prompt_path(prompts_dir, name)
 
-        if not prompt_path.exists():
+        if not prompt_file.exists():
             return jsonify({"error": f"Prompt '{name}' not found"}), 404
 
         try:
-            prompt_path.unlink()
+            prompt_file.unlink()
             return jsonify({"success": True, "deleted_name": name})
         except Exception as e:
             return jsonify({"error": str(e)}), 500
@@ -383,10 +390,10 @@ def create_app(*, config: dict[str, Any] | None = None) -> Flask:
 
         # Generate new name using existing logic
         duplicate_name = _next_copy_name(name)
-        duplicate_path = _prompt_path(prompts_dir, duplicate_name)
+        duplicate_path = prompt_path(prompts_dir, duplicate_name)
 
         try:
-            _write_prompt(duplicate_path, text)
+            write_prompt(duplicate_path, text)
             return jsonify({"success": True, "duplicated_name": duplicate_name})
         except Exception as e:
             return jsonify({"error": str(e)}), 500
@@ -409,7 +416,7 @@ def _run_generation(
         args.append("-a")
     if image_size.strip():
         args.extend(["-i", image_size.strip()])
-    for url in _split_multivalue_field(image_urls):
+    for url in split_multivalue_field(image_urls):
         args.extend(["-u", url])
 
     # Add extra metadata for EXIF
@@ -440,35 +447,8 @@ def _run_generation(
     return {"error": None, "paths": paths, "message": message}
 
 
-def _list_prompt_names(prompts_dir: Path) -> list[str]:
-    names: list[str] = []
-    for path in prompts_dir.glob("*.txt"):
-        names.append(path.stem)
-    return sorted(names)
-
-
-def _prompt_path(prompts_dir: Path, prompt_name: str) -> Path:
-    sanitized = _normalize_prompt_name(prompt_name)
-    return prompts_dir / f"{sanitized}.txt"
-
-
-def _normalize_prompt_name(raw_name: str) -> str:
-    candidate = raw_name.strip()
-    if not candidate:
-        return ""
-    candidate = Path(candidate).name
-    if candidate.endswith(".txt"):
-        candidate = candidate[:-4]
-    return candidate
-
-
-def _write_prompt(path: Path, text: str) -> None:
-    normalized = text.replace("\r\n", "\n").replace("\r", "\n")
-    path.write_text(normalized, encoding="utf-8")
-
-
 def _append_style_prompt(prompt_text: str, styles_dir: Path, style_name: str) -> str:
-    sanitized = _normalize_prompt_name(style_name)
+    sanitized = normalize_prompt_name(style_name)
     if not sanitized:
         return prompt_text
 
@@ -476,7 +456,7 @@ def _append_style_prompt(prompt_text: str, styles_dir: Path, style_name: str) ->
     if not style_path.exists():
         return prompt_text
 
-    style_text = style_path.read_text(encoding="utf-8")
+    style_text = read_prompt(style_path)
     normalized_style = style_text.replace("\r\n", "\n").replace("\r", "\n")
     normalized_prompt = prompt_text.replace("\r\n", "\n").replace("\r", "\n")
     lines = normalized_prompt.splitlines()
@@ -585,63 +565,7 @@ def _prompt_name_from_asset_filename(filename: str) -> str:
     match = re.search(r"-\d+", name)
     if match:
         name = name[: match.start()]
-    return _normalize_prompt_name(name)
-
-
-def _extract_prompt_from_exif(asset_path: Path) -> dict[str, Any]:
-    try:
-        with Image.open(asset_path) as img:
-            exif = img.getexif()
-    except Exception:
-        exif = None
-
-    description = exif.get(piexif.ImageIFD.ImageDescription) if exif else None
-    if not description:
-        return {}
-    if isinstance(description, bytes):
-        text = description.decode("utf-8", errors="ignore")
-    else:
-        text = str(description)
-    return _parse_exif_description(_normalize_exif_text(text))
-
-
-def _parse_exif_description(text: str) -> dict[str, Any]:
-    result: dict[str, Any] = {}
-    trimmed = text.strip()
-    if trimmed.startswith("{"):
-        try:
-            data = json.loads(trimmed)
-            if isinstance(data, dict):
-                result["model"] = data.get("model")
-                result["style"] = data.get("style_name")
-                result["prompt_name"] = data.get("prompt_name")
-                arguments = data.get("arguments", {})
-                if isinstance(arguments, dict):
-                    result["prompt"] = arguments.get("prompt")
-                return result
-        except json.JSONDecodeError:
-            pass
-
-    prompt_index = text.find("Prompt:")
-    if prompt_index == -1:
-        return result
-
-    prompt_text = text[prompt_index + len("Prompt:") :].strip()
-    model_text = None
-    model_index = text.find("Model:")
-    if 0 <= model_index < prompt_index:
-        model_text = text[model_index + len("Model:") : prompt_index].strip()
-
-    result["prompt"] = prompt_text
-    result["model"] = model_text
-    return result
-
-
-def _normalize_exif_text(text: str) -> str:
-    try:
-        return text.encode("latin-1").decode("utf-8")
-    except UnicodeError:
-        return text
+    return normalize_prompt_name(name)
 
 
 def _list_asset_paths(assets_dir: Path) -> list[Path]:
@@ -681,14 +605,6 @@ def _model_supports_image_urls(model: str) -> bool:
     model_info = MODEL_REGISTRY.get(model, {})
     options = model_info.get("options", {})
     return "image_urls" in options
-
-
-def _split_multivalue_field(raw_value: str) -> list[str]:
-    values: list[str] = []
-    for chunk in raw_value.splitlines():
-        parts = [part.strip() for part in chunk.split(",") if part.strip()]
-        values.extend(parts)
-    return values
 
 
 def _parse_checkbox(values: Sequence[str], *, default: bool = False) -> bool:
