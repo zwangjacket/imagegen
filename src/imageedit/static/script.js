@@ -458,6 +458,7 @@ function initShortcuts() {
     const saveBtn = document.getElementById('save-prompt-btn');
     const duplicateBtn = document.getElementById('duplicate-prompt-btn');
     const generateBtn = document.querySelector('button[name="action"][value="run"]');
+    const promptTextarea = document.getElementById('prompt-text');
     const modelSelect = document.getElementById('model-name');
     const sizeSelect = document.getElementById('image-size-preset');
     const styleSelect = document.getElementById('style-name-preset');
@@ -515,6 +516,9 @@ function initShortcuts() {
             e.preventDefault();
         } else if (key === 'g') {
             if (generateBtn) generateBtn.click();
+            e.preventDefault();
+        } else if (key === 'p') {
+            if (promptTextarea) promptTextarea.focus();
             e.preventDefault();
         } else if (key === 'm') {
             if (modelSelect) modelSelect.focus();
@@ -796,6 +800,14 @@ function initModelSizeSync() {
 
     if (!modelSelect || !sizeSelect) return;
 
+    let hideTimer = null;
+
+    const triggerFlash = (element) => {
+        element.classList.remove('flash-attention');
+        void element.offsetWidth;
+        element.classList.add('flash-attention');
+    };
+
     modelSelect.addEventListener('change', async () => {
         const model = modelSelect.value;
         if (!model) return;
@@ -812,7 +824,23 @@ function initModelSizeSync() {
             // Toggle URL input visibility
             const urlsGroup = document.getElementById('image-urls-group');
             if (urlsGroup) {
-                urlsGroup.style.display = supportsUrls ? 'block' : 'none';
+                if (hideTimer) {
+                    clearTimeout(hideTimer);
+                    hideTimer = null;
+                }
+
+                const isHidden = getComputedStyle(urlsGroup).display === 'none';
+                if (supportsUrls) {
+                    urlsGroup.style.display = 'block';
+                    triggerFlash(urlsGroup);
+                } else if (!isHidden) {
+                    triggerFlash(urlsGroup);
+                    hideTimer = setTimeout(() => {
+                        urlsGroup.style.display = 'none';
+                        urlsGroup.classList.remove('flash-attention');
+                        hideTimer = null;
+                    }, 900);
+                }
             }
 
             // Clear existing options

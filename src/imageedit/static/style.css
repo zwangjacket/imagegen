@@ -103,6 +103,30 @@ textarea:focus {
     border-color: var(--accent);
 }
 
+.flash-attention {
+    animation: flash-border 0.9s ease-in-out 1;
+    border-radius: var(--radius);
+}
+
+@keyframes flash-border {
+    0%,
+    22.22%,
+    33.33%,
+    55.55%,
+    66.66%,
+    88.88% {
+        box-shadow: 0 0 0 1px var(--danger);
+    }
+    22.23%,
+    33.32%,
+    55.56%,
+    66.65%,
+    88.89%,
+    100% {
+        box-shadow: none;
+    }
+}
+
 /* Specific Layouts */
 .editor-layout {
     display: flex;
