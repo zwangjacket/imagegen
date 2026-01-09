@@ -1730,4 +1730,114 @@ MODEL_REGISTRY: dict[str, dict[str, Any]] = {
             },
         },
     },
+    "gpt-image15": {
+        "endpoint": "fal-ai/gpt-image-1.5",
+        "call": "subscribe",
+        "doc_url": "https://fal.ai/models/fal-ai/gpt-image-1.5/api",
+        "options": {
+            "prompt": {
+                "type": "prompt",
+                "default": None,
+                "help": "prompt text",
+                "file_help": "prompt file in prompts/",
+            },
+            "image_size": {
+                "type": "i",
+                "default": "1024x1024",
+                "help": "preset image size",
+                "allowed_sizes": ["1024x1024", "1536x1024", "1024x1536"],
+                "flags": ["-i", "--image-size"],
+            },
+            "background": {
+                "type": str,
+                "default": "auto",
+                "help": "background (auto, transparent, opaque)",
+            },
+            "quality": {
+                "type": str,
+                "default": "high",
+                "help": "quality preset (low, medium, high)",
+            },
+            "num_images": {
+                "type": int,
+                "default": 1,
+                "help": "number of images to generate",
+                "flags": ["-#", "--num-images"],
+            },
+            "output_format": {
+                "type": str,
+                "default": "png",
+                "help": "output image format (jpeg, png, webp)",
+            },
+            "sync_mode": {
+                "type": bool,
+                "default": False,
+                "help": "return results as a data URI without request history",
+            },
+        },
+    },
+    "gpt-image15-edit": {
+        "endpoint": "fal-ai/gpt-image-1.5/edit",
+        "call": "subscribe",
+        "doc_url": "https://fal.ai/models/fal-ai/gpt-image-1.5/edit/api",
+        "options": {
+            "prompt": {
+                "type": "prompt",
+                "default": None,
+                "help": "prompt text",
+                "file_help": "prompt file in prompts/",
+            },
+            "image_urls": {
+                "type": str,
+                "default": None,
+                "help": "image URL input (repeatable)",
+                "action": "append",
+                "metavar": "URL",
+                "flags": ["--image-url", "--image-urls", "-u"],
+            },
+            "image_size": {
+                "type": "i",
+                "default": "auto",
+                "help": "preset image size",
+                "allowed_sizes": ["auto", "1024x1024", "1536x1024", "1024x1536"],
+                "flags": ["-i", "--image-size"],
+            },
+            "background": {
+                "type": str,
+                "default": "auto",
+                "help": "background (auto, transparent, opaque)",
+            },
+            "quality": {
+                "type": str,
+                "default": "high",
+                "help": "quality preset (low, medium, high)",
+            },
+            "input_fidelity": {
+                "type": str,
+                "default": "high",
+                "help": "input fidelity (low, high)",
+            },
+            "num_images": {
+                "type": int,
+                "default": 1,
+                "help": "number of images to generate",
+                "flags": ["-#", "--num-images"],
+            },
+            "output_format": {
+                "type": str,
+                "default": "png",
+                "help": "output image format (jpeg, png, webp)",
+            },
+            "sync_mode": {
+                "type": bool,
+                "default": False,
+                "help": "return results as a data URI without request history",
+            },
+            "mask_image_url": {
+                "type": str,
+                "default": None,
+                "help": "mask image URL for edits",
+            },
+        },
+    },
 }
