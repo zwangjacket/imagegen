@@ -4,9 +4,9 @@ from pathlib import Path
 
 from imageedit.app import (
     _next_copy_name,
+    _normalize_exif_text,
     _parse_checkbox,
     _parse_exif_description,
-    _normalize_exif_text,
     _prompt_name_from_asset_filename,
     create_app,
 )

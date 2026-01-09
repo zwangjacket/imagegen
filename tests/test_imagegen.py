@@ -1,9 +1,9 @@
 import importlib
 import json
-from io import BytesIO
 import sys
 import types
 from email.message import Message
+from io import BytesIO
 
 import pytest
 from PIL import Image
