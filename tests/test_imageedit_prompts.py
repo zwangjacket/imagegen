@@ -19,6 +19,7 @@ def _make_client(tmp_path: Path):
             "TESTING": True,
             "PROMPTS_DIR": prompts_dir,
             "ASSETS_DIR": assets_dir,
+            "STARTUP_MODEL": "seedream",
         }
     )
     return app.test_client(), prompts_dir, assets_dir
@@ -100,7 +101,7 @@ def test_run_generates_images(monkeypatch, tmp_path):
         captured["parsed"] = parsed
         return [Path("assets/delta-1.png")]
 
-    monkeypatch.setattr("imageedit.app.generate_images", fake_generate)
+    monkeypatch.setattr("imageedit.services.generation.generate_images", fake_generate)
 
     response = client.post(
         "/",
@@ -137,7 +138,7 @@ def test_run_with_image_urls(monkeypatch, tmp_path):
         captured["parsed"] = parsed
         return [Path("assets/edit-1.png")]
 
-    monkeypatch.setattr("imageedit.app.generate_images", fake_generate)
+    monkeypatch.setattr("imageedit.services.generation.generate_images", fake_generate)
 
     response = client.post(
         "/",

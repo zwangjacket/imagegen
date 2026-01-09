@@ -20,6 +20,7 @@ def _make_client(tmp_path: Path):
             "PROMPTS_DIR": prompts_dir,
             "ASSETS_DIR": assets_dir,
             "STYLES_DIR": styles_dir,
+            "STARTUP_MODEL": "seedream",
         }
     )
     return app.test_client(), prompts_dir, styles_dir

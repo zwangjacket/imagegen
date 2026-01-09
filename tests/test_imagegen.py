@@ -246,6 +246,8 @@ def test_generate_images_adds_prompt_description_when_requested(
         lambda path, **kwargs: exif_calls.append((path, kwargs)) or True,
     )
 
+    monkeypatch.setenv("SOURCE_IMAGE_URL", "https://example.com/k/")
+    monkeypatch.setenv("SAFETENSORS_URL", "https://example.com/j/")
     parsed = ParsedOptions(
         model="schnell",
         endpoint="fal-ai/flux/schnell",
