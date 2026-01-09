@@ -177,7 +177,8 @@ def _parse_image_size(
                 )
             return f"{width_val}x{height_val}"
 
-    allowed = ", ".join(sorted(normalized_allowed)) if normalized_allowed else ""
+    allowed_values = sorted(canonical_map.keys())
+    allowed = ", ".join(allowed_values) if allowed_values else ""
     suffix = " or <width>x<height>" if allow_dimensions else ""
     message = "image size must be"
     if allowed:

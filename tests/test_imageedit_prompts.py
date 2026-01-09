@@ -2,11 +2,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from image_common.exif import normalize_exif_text, parse_exif_description
 from imageedit.app import (
     _next_copy_name,
-    _normalize_exif_text,
     _parse_checkbox,
-    _parse_exif_description,
     _prompt_name_from_asset_filename,
     create_app,
 )
@@ -183,14 +182,14 @@ def test_next_copy_name_increments_suffixes():
 
 def test_parse_exif_description_extracts_model_and_prompt():
     text = '{"arguments":{"prompt":"hello world"},"call":"run","endpoint":"x","model":"seedream"}'
-    result = _parse_exif_description(text)
+    result = parse_exif_description(text)
     assert result["model"] == "seedream"
     assert result["prompt"] == "hello world"
 
 
 def test_normalize_exif_text_repairs_mojibake():
     bad = "\u00e7\u0095\u00b0\u00e7\u0095\u008c\u00e9\u0096\u0080"
-    fixed = _normalize_exif_text(bad)
+    fixed = normalize_exif_text(bad)
     assert fixed == "\u7570\u754c\u9580"
 
 

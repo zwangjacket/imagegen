@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import os
 import subprocess
 import sys
 import time
@@ -17,6 +16,8 @@ from typing import Any
 from urllib.parse import urlparse
 
 from PIL import Image
+
+from image_common.env import save_clean_copy_enabled
 
 from . import exif
 from .options import ParsedOptions, get_safetensors_url, get_source_image_url
@@ -319,7 +320,6 @@ def _apply_exif_metadata(path: Path, parsed: ParsedOptions) -> None:
                         shortened.append(entry)
                 arguments[key] = shortened
 
-
         # Also don't leak SAFETENSOR URLs
         loras_value = arguments.get("loras")
         if isinstance(loras_value, list):
@@ -397,15 +397,15 @@ def _save_clean_copy(source_path: Path, output_dir: Path) -> None:
     try:
         if output_dir.name == "":
             # Handle edge case where output_dir might be just a name like 'assets' without full path logic sometimes?
-            # Path('assets').name is 'assets'. Path('.').name is ''. 
+            # Path('assets').name is 'assets'. Path('.').name is ''.
             # If output_dir is '.', name is empty.
             clean_dir_name = "clean_images"
             if output_dir.as_posix() != ".":
-                 clean_dir_name = f"{output_dir.as_posix()}_clean"
+                clean_dir_name = f"{output_dir.as_posix()}_clean"
             clean_dir = output_dir.parent / clean_dir_name
         else:
             clean_dir = output_dir.parent / f"{output_dir.name}_clean"
-        
+
         clean_dir.mkdir(parents=True, exist_ok=True)
         target_path = clean_dir / source_path.name
 
@@ -416,26 +416,6 @@ def _save_clean_copy(source_path: Path, output_dir: Path) -> None:
     except Exception as e:
         # Don't fail the main generation if clean copy fails
         print(f"Warning: failed to save clean copy: {e}", file=sys.stderr)
-
-
-def save_clean_copy_enabled() -> bool:
-    value = os.getenv("SAVE_CLEAN_COPY", "")
-    if not value.strip():
-        return False
-    return _as_boolean(value, "SAVE_CLEAN_COPY")
-
-
-def _as_boolean(value: str, key: str | None) -> bool:
-    if not key:
-        key = "key"
-    normalized = value.strip().lower()
-    if normalized in {"1", "true", "yes", "on"}:
-        return True
-    if normalized in {"0", "false", "no", "off"}:
-        return False
-    raise ValueError(
-        f"value {value} for {key} must be one of 1, 0, true, false, yes, no, on, off"
-    )
 
 
 __all__ = ["generate_images", "upload_image", "save_clean_copy_enabled"]

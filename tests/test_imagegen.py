@@ -263,13 +263,14 @@ def test_generate_images_adds_prompt_description_when_requested(
         as_jpg=False,
     )
 
+    monkeypatch.setenv("SAVE_CLEAN_COPY", "1")
     output = mod.generate_images(parsed, output_dir=tmp_path)
 
     expected = tmp_path / "dreamy-dreamy-forest-scene-20260104_114516.png"
     clean_copy = tmp_path.parent / (tmp_path.name + "_clean") / expected.name
 
     assert output == [expected]
-    
+
     # Verify primary file HAS the sensitive data (reverted behavior)
     expected_description = json.dumps(
         {
@@ -296,33 +297,33 @@ def test_generate_images_adds_prompt_description_when_requested(
 
     # Verify clean copy exists and has NO EXIF (or at least different data)
     assert clean_copy.exists()
-    
-    # We can check the clean copy content. 
+
+    # We can check the clean copy content.
     # Since _save_clean_copy creates a new image from bytes, it won't have the EXIF injected via piexif in _apply_exif_metadata
     # The clean copy generation happens AFTER the download but is independent of the _apply_exif_metadata logic.
-    # However, _apply_exif_metadata modifies the file in place. 
-    # _save_clean_copy reads that modified file. 
+    # However, _apply_exif_metadata modifies the file in place.
+    # _save_clean_copy reads that modified file.
     # Wait, if _apply_exif_metadata runs BEFORE _save_clean_copy, then the file on disk HAS EXIF.
     # So _save_clean_copy reads the file with EXIF.
     # But _save_clean_copy uses Image.frombytes which STRIPS metadata.
     # So we should verify the clean copy is indeed clean.
-    
+
     # To test this integration properly (since we mock set_exif_data which just records the call but doesn't write to disk in this test setup),
     # we can't easily verify the file on disk lacks EXIF because the mock prevented EXIF from being written to the source file in the first place!
     # BUT, the test setup mocks `exif.set_exif_data`.
     # `imagegen._apply_exif_metadata` calls `exif.set_exif_data`.
     # `imagegen._save_clean_copy` opens the file.
-    
+
     # In this test, `exif.set_exif_data` is a mock that does NOTHING to the file.
     # So the source file on disk is just the raw bytes "img1" (or "x" in this test).
     # So `_save_clean_copy` reads "x", creates a new image from it, and saves it.
     # So the clean copy will be "x" (or similar bytes).
-    
+
     # The important part of this test is confirming that:
     # 1. `_save_clean_copy` WAS called (implied by file existence).
     # 2. `_apply_exif_metadata` was called with the FULL description (verified by exif_calls desc).
-    
-    # Since we can't verify the stripping logic with the current mock setup (as the source file never gets dirty), 
+
+    # Since we can't verify the stripping logic with the current mock setup (as the source file never gets dirty),
     # verifying existing of clean_copy + verifying the INTENT of the primary file is sufficient for this unit test.
     # The actual stripping logic is tested structurally by the code verification and the script we ran earlier.
 
