@@ -185,6 +185,41 @@ def test_run_with_image_urls(monkeypatch, tmp_path):
     assert parsed.preview_assets is False
 
 
+def test_asset_load_uses_exif_size_and_image_urls(monkeypatch, tmp_path):
+    client, _, assets_dir = _make_client(tmp_path)
+    assets_dir.mkdir(parents=True, exist_ok=True)
+    asset_path = assets_dir / "loaded_req_1.png"
+    asset_path.write_bytes(b"not a real image")
+
+    monkeypatch.setattr(
+        "imageedit.routes.extract_prompt_from_exif",
+        lambda _path: {
+            "prompt": "loaded prompt",
+            "model": "seedream5-edit",
+            "image_size": "auto_3K",
+            "image_urls": [
+                "https://example.com/source-a.png",
+                "https://example.com/source-b.png",
+            ],
+        },
+    )
+
+    response = client.post(
+        "/",
+        data={
+            "asset_filename": "loaded_req_1.png",
+            "action": "asset_load",
+        },
+    )
+
+    body = response.get_data(as_text=True)
+    assert '<option value="seedream5-edit" selected>' in body
+    assert '<option value="auto_3K" selected>' in body
+    assert 'id="image-urls-group" data-input-mode="multi"' in body
+    assert "https://example.com/source-a.png" in body
+    assert "https://example.com/source-b.png" in body
+
+
 def test_asset_route_rejects_non_images(tmp_path):
     client, _, assets_dir = _make_client(tmp_path)
     assets_dir.mkdir(parents=True, exist_ok=True)
@@ -204,10 +239,16 @@ def test_next_copy_name_increments_suffixes():
 
 
 def test_parse_exif_description_extracts_model_and_prompt():
-    text = '{"arguments":{"prompt":"hello world"},"call":"run","endpoint":"x","model":"seedream"}'
+    text = (
+        '{"arguments":{"prompt":"hello world","image_size":"auto_3K",'
+        '"image_urls":["https://example.com/a.png"]},'
+        '"call":"run","endpoint":"x","model":"seedream5-edit"}'
+    )
     result = parse_exif_description(text)
-    assert result["model"] == "seedream"
+    assert result["model"] == "seedream5-edit"
     assert result["prompt"] == "hello world"
+    assert result["image_size"] == "auto_3K"
+    assert result["image_urls"] == ["https://example.com/a.png"]
 
 
 def test_normalize_exif_text_repairs_mojibake():
@@ -230,3 +271,11 @@ def test_prompt_name_from_asset_filename_extracts_suffix():
         _prompt_name_from_asset_filename("truc-yog-1-4f6c1266eff848cb.png")
         == "truc-yog"
     )
+
+
+def test_prompt_name_from_asset_filename_extracts_request_id_name():
+    assert _prompt_name_from_asset_filename("biscuit-1-run-req-123.png") == "biscuit"
+
+
+def test_prompt_name_from_asset_filename_extracts_underscore_request_id_name():
+    assert _prompt_name_from_asset_filename("biscuit_run-req-123_1.png") == "biscuit"

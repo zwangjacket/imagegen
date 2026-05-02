@@ -56,7 +56,9 @@ CONFIG_REGISTRY: list[dict[str, Any]] = [
         "key": "SAVE_CLEAN_COPY",
         "default_value": "on",
         "help_text": (
-            "Create a second copy of the image in assets_cleans sans exif data."
+            "Create a second copy of the image without EXIF data in a sibling "
+            "directory named from the output directory plus _clean, for example "
+            "assets_clean."
         ),
     },
     {

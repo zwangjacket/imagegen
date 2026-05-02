@@ -44,6 +44,17 @@ def parse_exif_description(text: str) -> dict[str, Any]:
                 arguments = data.get("arguments", {})
                 if isinstance(arguments, dict):
                     result["prompt"] = arguments.get("prompt")
+                    image_size = arguments.get("image_size")
+                    if isinstance(image_size, str):
+                        result["image_size"] = image_size
+                    image_url = arguments.get("image_url")
+                    if isinstance(image_url, str):
+                        result["image_url"] = image_url
+                    image_urls = arguments.get("image_urls")
+                    if isinstance(image_urls, list):
+                        result["image_urls"] = [
+                            url for url in image_urls if isinstance(url, str)
+                        ]
                 return result
         except json.JSONDecodeError:
             logger.debug("Failed to parse EXIF JSON description.")

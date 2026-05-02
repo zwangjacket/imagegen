@@ -42,6 +42,10 @@ def resolve_asset_path(assets_dir: Path, filename: str) -> Path | None:
 
 def prompt_name_from_asset_filename(filename: str) -> str:
     name = Path(filename).stem
+    parts = name.rsplit("_", 2)
+    if len(parts) == 3 and parts[-1].isdigit():
+        name = parts[0]
+        return normalize_prompt_name(name)
     match = re.search(r"-\d+", name)
     if match:
         name = name[: match.start()]
