@@ -51,8 +51,14 @@ def test_generate_images_run_invocation(monkeypatch, tmp_path, reload_imagegen):
         return {
             "request_id": "run-req-123",
             "images": [
-                {"url": "https://example.com/image-1.png"},
-                {"url": "https://example.com/image-2.jpeg"},
+                {
+                    "file_name": "media-file-123.png",
+                    "url": "https://example.com/image-1.png",
+                },
+                {
+                    "file_name": "media-file-456.jpeg",
+                    "url": "https://example.com/image-2.jpeg",
+                },
             ],
         }
 
@@ -78,10 +84,6 @@ def test_generate_images_run_invocation(monkeypatch, tmp_path, reload_imagegen):
 
     perf_values = iter([100.0, 101.5])
     monkeypatch.setattr(mod.time, "perf_counter", lambda: next(perf_values))
-    monkeypatch.setattr(
-        mod.time, "strftime", lambda *_args, **_kwargs: "20260104_114516"
-    )
-
     responses = iter(
         [
             _FakeResponse(b"img1", "image/png"),
@@ -108,8 +110,8 @@ def test_generate_images_run_invocation(monkeypatch, tmp_path, reload_imagegen):
     assert captured["arguments"]["prompt"] == "hello"
     assert len(output) == 2
 
-    expected_1 = tmp_path / "cats-hello-20260104_114516.png"
-    expected_2 = tmp_path / "cats-hello-20260104_114516.jpg"
+    expected_1 = tmp_path / "cats-1-media-file-123.png"
+    expected_2 = tmp_path / "cats-2-media-file-456.jpg"
 
     assert output == [expected_1, expected_2]
     assert expected_1.read_bytes() == b"img1"
@@ -136,7 +138,14 @@ def test_generate_images_subscribe(monkeypatch, tmp_path, reload_imagegen):
             self.request_id = "sub-req-789"
 
         def get(self):
-            return {"output": [{"url": "https://example.com/sub.png"}]}
+            return {
+                "output": [
+                    {
+                        "file_name": "sub-req-789.png",
+                        "url": "https://example.com/sub.png",
+                    }
+                ]
+            }
 
     captured = {}
 
@@ -171,10 +180,6 @@ def test_generate_images_subscribe(monkeypatch, tmp_path, reload_imagegen):
     perf_values = iter([200.0, 205.25])
     monkeypatch.setattr(mod.time, "perf_counter", lambda: next(perf_values))
     monkeypatch.setattr(
-        mod.time, "strftime", lambda *_args, **_kwargs: "20260104_114516"
-    )
-
-    monkeypatch.setattr(
         mod.urllib.request,
         "urlopen",
         lambda url: _FakeResponse(b"sub", "image/png"),
@@ -192,7 +197,7 @@ def test_generate_images_subscribe(monkeypatch, tmp_path, reload_imagegen):
 
     output = mod.generate_images(parsed, output_dir=tmp_path)
 
-    expected = tmp_path / "hi-20260104_114516.png"
+    expected = tmp_path / "dev-1-sub-req-789.png"
     assert output == [expected]
     assert expected.read_bytes() == b"sub"
     assert captured["endpoint"] == "fal-ai/flux/dev"
@@ -219,7 +224,9 @@ def test_generate_images_adds_prompt_description_when_requested(
     def run(endpoint, *, arguments):
         return {
             "request_id": "abc123",
-            "images": [{"url": "https://example.com/only.png"}],
+            "images": [
+                {"file_name": "abc123.png", "url": "https://example.com/only.png"}
+            ],
         }
 
     fal_module = types.SimpleNamespace(run=run, subscribe=lambda *args, **kwargs: None)
@@ -235,10 +242,6 @@ def test_generate_images_adds_prompt_description_when_requested(
     monkeypatch.setattr(mod, "_handle_post_write", lambda path: None)
     monkeypatch.setattr(mod, "_emit_request_info", lambda *args, **kwargs: None)
     monkeypatch.setattr(mod, "_emit_elapsed", lambda *args, **kwargs: None)
-    monkeypatch.setattr(
-        mod.time, "strftime", lambda *_args, **_kwargs: "20260104_114516"
-    )
-
     exif_calls = []
     monkeypatch.setattr(
         mod.exif,
@@ -268,7 +271,7 @@ def test_generate_images_adds_prompt_description_when_requested(
     monkeypatch.setenv("SAVE_CLEAN_COPY", "1")
     output = mod.generate_images(parsed, output_dir=tmp_path)
 
-    expected = tmp_path / "dreamy-dreamy-forest-scene-20260104_114516.png"
+    expected = tmp_path / "dreamy-1-abc123.png"
     clean_copy = tmp_path.parent / (tmp_path.name + "_clean") / expected.name
 
     assert output == [expected]
@@ -337,7 +340,9 @@ def test_generate_images_skips_preview_when_disabled(
     def run(endpoint, *, arguments):
         return {
             "request_id": "skip-req",
-            "images": [{"url": "https://example.com/img.png"}],
+            "images": [
+                {"file_name": "skip-req.png", "url": "https://example.com/img.png"}
+            ],
         }
 
     fal_module = types.SimpleNamespace(run=run, subscribe=lambda *args, **kwargs: None)
@@ -350,9 +355,6 @@ def test_generate_images_skips_preview_when_disabled(
     monkeypatch.setattr(mod, "_handle_post_write", lambda path: opened.append(path))
     monkeypatch.setattr(mod, "_emit_request_info", lambda *args, **kwargs: None)
     monkeypatch.setattr(mod, "_emit_elapsed", lambda *args, **kwargs: None)
-    monkeypatch.setattr(
-        mod.time, "strftime", lambda *_args, **_kwargs: "20260104_114516"
-    )
     monkeypatch.setattr(
         mod.exif,
         "set_exif_data",
@@ -370,7 +372,7 @@ def test_generate_images_skips_preview_when_disabled(
 
     output = mod.generate_images(parsed, output_dir=tmp_path)
 
-    expected = tmp_path / "skip-skip-20260104_114516.png"
+    expected = tmp_path / "skip-1-skip-req.png"
     assert output == [expected]
     assert opened == []
 
@@ -380,7 +382,9 @@ def test_generate_images_converts_png_to_jpg(monkeypatch, tmp_path, reload_image
     def run(endpoint, *, arguments):
         return {
             "request_id": "conv-req",
-            "images": [{"url": "https://example.com/img.png"}],
+            "images": [
+                {"file_name": "conv-req.png", "url": "https://example.com/img.png"}
+            ],
         }
 
     fal_module = types.SimpleNamespace(run=run, subscribe=lambda *args, **kwargs: None)
@@ -396,9 +400,6 @@ def test_generate_images_converts_png_to_jpg(monkeypatch, tmp_path, reload_image
     monkeypatch.setattr(mod, "_handle_post_write", lambda path: None)
     monkeypatch.setattr(mod, "_emit_request_info", lambda *args, **kwargs: None)
     monkeypatch.setattr(mod, "_emit_elapsed", lambda *args, **kwargs: None)
-    monkeypatch.setattr(
-        mod.time, "strftime", lambda *_args, **_kwargs: "20260104_114516"
-    )
     monkeypatch.setattr(
         mod.exif,
         "set_exif_data",
@@ -421,6 +422,85 @@ def test_generate_images_converts_png_to_jpg(monkeypatch, tmp_path, reload_image
 
     output = mod.generate_images(parsed, output_dir=tmp_path)
 
-    expected = tmp_path / "convert-20260104_114516.jpg"
+    expected = tmp_path / "schnell-1-conv-req.jpg"
     assert output == [expected]
     assert expected.read_bytes()[:2] == b"\xff\xd8"
+
+
+def test_generate_images_uses_random_token_when_request_id_missing(
+    monkeypatch, tmp_path, reload_imagegen
+):
+    def run(endpoint, *, arguments):
+        return {"images": [{"url": "https://example.com/img.png"}]}
+
+    fal_module = types.SimpleNamespace(run=run, subscribe=lambda *args, **kwargs: None)
+    mod = reload_imagegen(fal_module)
+
+    monkeypatch.setattr(mod.secrets, "token_hex", lambda _size: "fallback123")
+    monkeypatch.setattr(
+        mod.urllib.request, "urlopen", lambda url: _FakeResponse(b"x", "image/png")
+    )
+    monkeypatch.setattr(mod, "_handle_post_write", lambda path: None)
+    monkeypatch.setattr(mod, "_emit_request_info", lambda *args, **kwargs: None)
+    monkeypatch.setattr(mod, "_emit_elapsed", lambda *args, **kwargs: None)
+    monkeypatch.setattr(
+        mod.exif,
+        "set_exif_data",
+        lambda path, **kwargs: True,
+    )
+
+    parsed = ParsedOptions(
+        model="flux-2",
+        endpoint="fal-ai/flux-2",
+        call="run",
+        params={"prompt": "direct prompt"},
+        as_jpg=False,
+    )
+
+    output = mod.generate_images(parsed, output_dir=tmp_path)
+
+    expected = tmp_path / "flux-2-1-fallback123.png"
+    assert output == [expected]
+
+
+def test_generate_images_prefers_file_name_stem_over_request_id(
+    monkeypatch, tmp_path, reload_imagegen
+):
+    def run(endpoint, *, arguments):
+        return {
+            "request_id": "run-req-123",
+            "images": [
+                {
+                    "file_name": "add8d3493cb041dc906b8fea0dd76101.jpg",
+                    "url": "https://example.com/img.jpg",
+                }
+            ],
+        }
+
+    fal_module = types.SimpleNamespace(run=run, subscribe=lambda *args, **kwargs: None)
+    mod = reload_imagegen(fal_module)
+
+    monkeypatch.setattr(
+        mod.urllib.request, "urlopen", lambda url: _FakeResponse(b"x", "image/jpeg")
+    )
+    monkeypatch.setattr(mod, "_handle_post_write", lambda path: None)
+    monkeypatch.setattr(mod, "_emit_request_info", lambda *args, **kwargs: None)
+    monkeypatch.setattr(mod, "_emit_elapsed", lambda *args, **kwargs: None)
+    monkeypatch.setattr(
+        mod.exif,
+        "set_exif_data",
+        lambda path, **kwargs: True,
+    )
+
+    parsed = ParsedOptions(
+        model="flux-2",
+        endpoint="fal-ai/flux-2",
+        call="run",
+        params={"prompt": "direct prompt"},
+        as_jpg=False,
+    )
+
+    output = mod.generate_images(parsed, output_dir=tmp_path)
+
+    expected = tmp_path / "flux-2-1-add8d3493cb041dc906b8fea0dd76101.jpg"
+    assert output == [expected]
