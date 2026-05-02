@@ -176,6 +176,41 @@ def test_parser_does_not_require_common_keys():
                 },
             },
         ),
+        (
+            ["gpt-image-2", "-p", "hi"],
+            {
+                "model": "gpt-image-2",
+                "params": {
+                    "prompt": "hi",
+                    "image_size": "landscape_4_3",
+                    "quality": "high",
+                    "num_images": 1,
+                    "output_format": "png",
+                    "sync_mode": False,
+                },
+            },
+        ),
+        (
+            [
+                "gpt-image-2-edit",
+                "-p",
+                "hi",
+                "--image-url",
+                "https://example.com/src.png",
+            ],
+            {
+                "model": "gpt-image-2-edit",
+                "params": {
+                    "prompt": "hi",
+                    "image_urls": ["https://example.com/src.png"],
+                    "image_size": "auto",
+                    "quality": "high",
+                    "num_images": 1,
+                    "output_format": "png",
+                    "sync_mode": False,
+                },
+            },
+        ),
     ],
 )
 def test_parse_basic(argv, expected):
