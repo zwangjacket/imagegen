@@ -195,6 +195,17 @@ def index() -> str:
                     if exif_data.get("prompt_name"):
                         selected_prompt = exif_data["prompt_name"]
 
+                    if isinstance(exif_data.get("image_size"), str):
+                        image_size_value = exif_data["image_size"]
+
+                    image_urls = exif_data.get("image_urls")
+                    if isinstance(image_urls, list):
+                        image_urls_text = "\n".join(
+                            url for url in image_urls if isinstance(url, str)
+                        )
+                    elif isinstance(exif_data.get("image_url"), str):
+                        image_urls_text = exif_data["image_url"]
+
                     status_message = f"Loaded prompt from asset '{asset_filename}'."
         elif action == "append_style":
             prompt_text = append_style_prompt(prompt_text, styles_dir, selected_style)
@@ -205,12 +216,15 @@ def index() -> str:
                 if not selected_model:
                     error_message = "A model must be selected before running."
                 else:
-                    prompt_file = prompt_path(prompts_dir, selected_prompt)
-                    write_prompt(prompt_file, prompt_text)
+                    prompt_file = None
+                    if selected_prompt:
+                        prompt_file = prompt_path(prompts_dir, selected_prompt)
+                        write_prompt(prompt_file, prompt_text)
                     run_result = run_generation(
                         selected_model=selected_model,
                         prompt_name=selected_prompt,
                         prompt_path=prompt_file,
+                        prompt_text=prompt_text,
                         include_prompt_metadata=include_prompt_metadata,
                         image_size=image_size_value,
                         image_urls=image_urls_text if supports_image_urls else "",
@@ -234,6 +248,8 @@ def index() -> str:
         if prompt_file.exists():
             prompt_text = read_prompt(prompt_file)
 
+    input_mode = image_input_mode(selected_model)
+    supports_image_urls = input_mode != "none"
     allowed_sizes = get_allowed_sizes(selected_model)
     assets_dir = Path(current_app.config["ASSETS_DIR"])
     asset_paths = list_asset_paths(assets_dir)

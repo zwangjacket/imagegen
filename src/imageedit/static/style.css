@@ -762,9 +762,10 @@ input:checked+.slider:before {
 .history-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    grid-auto-rows: minmax(96px, 1fr);
     gap: 0.5rem;
     margin-top: 0.5rem;
-    max-height: 200px;
+    height: clamp(220px, 32vh, 360px);
     overflow-y: auto;
     background: var(--bg-input);
     padding: 0.5rem;
@@ -774,7 +775,7 @@ input:checked+.slider:before {
 
 .history-item {
     position: relative;
-    aspect-ratio: 1;
+    min-height: 96px;
     border-radius: 4px;
     overflow: hidden;
     cursor: pointer;
@@ -820,6 +821,7 @@ input:checked+.slider:before {
     display: flex;
     flex-direction: column;
     gap: 0;
+    height: auto;
     padding: 0;
     max-height: 200px;
     overflow-y: auto;
@@ -935,3 +937,4 @@ input:checked+.slider:before {
     opacity: 0.35;
     cursor: not-allowed;
 }
+

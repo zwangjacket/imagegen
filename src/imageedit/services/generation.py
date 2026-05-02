@@ -19,7 +19,8 @@ def run_generation(
     *,
     selected_model: str,
     prompt_name: str,
-    prompt_path: Path,
+    prompt_path: Path | None,
+    prompt_text: str | None,
     include_prompt_metadata: bool,
     image_size: str,
     image_urls: str,
@@ -27,7 +28,17 @@ def run_generation(
     style_name: str | None = None,
     mini_cli: str = "",
 ) -> dict[str, Any]:
-    args: list[str] = [selected_model, "--no-preview", "-f", str(prompt_path)]
+    args: list[str] = [selected_model, "--no-preview"]
+    if prompt_path is not None:
+        args.extend(["-f", str(prompt_path)])
+    elif prompt_text and prompt_text.strip():
+        args.extend(["-p", prompt_text])
+    else:
+        return {
+            "error": "Prompt text is required.",
+            "paths": [],
+            "message": None,
+        }
     if include_prompt_metadata:
         args.append("-a")
     if image_size.strip():

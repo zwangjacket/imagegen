@@ -129,7 +129,7 @@ def test_run_generates_images(monkeypatch, tmp_path):
         data={
             "prompt_name": "delta",
             "prompt_text": "delta text new",
-            "model_name": "schnell",
+            "model_name": "flux-2",
             "image_size_preset": "square",
             "include_prompt_metadata": "on",
             "action": "run",
@@ -140,10 +140,45 @@ def test_run_generates_images(monkeypatch, tmp_path):
     assert "Generated 1 image" in body
     assert "assets/delta-1.png" in body
     parsed = captured["parsed"]
-    assert parsed.model == "schnell"
+    assert parsed.model == "flux-2"
     assert parsed.add_prompt_metadata is True
     assert parsed.params["image_size"] == "square"
     assert parsed.preview_assets is False
+
+
+def test_run_without_prompt_name_uses_prompt_text(monkeypatch, tmp_path):
+    client, prompts_dir, _ = _make_client(tmp_path)
+    prompts_dir.mkdir(parents=True, exist_ok=True)
+
+    captured = {}
+
+    def fake_generate(parsed):
+        captured["parsed"] = parsed
+        return [Path("assets/flux-2-1-fallback.png")], [
+            "https://example.com/flux-2-1-fallback.png"
+        ]
+
+    monkeypatch.setattr(
+        "imageedit.services.generation.generate_images_with_urls", fake_generate
+    )
+
+    response = client.post(
+        "/",
+        data={
+            "prompt_name": "",
+            "prompt_text": "loose prompt text",
+            "model_name": "flux-2",
+            "image_size_preset": "square",
+            "action": "run",
+        },
+    )
+
+    assert "Generated 1 image" in response.get_data(as_text=True)
+    assert not (prompts_dir / ".txt").exists()
+    parsed = captured["parsed"]
+    assert parsed.model == "flux-2"
+    assert parsed.params["prompt"] == "loose prompt text"
+    assert "file" not in parsed.params
 
 
 def test_run_with_image_urls(monkeypatch, tmp_path):
@@ -168,7 +203,7 @@ def test_run_with_image_urls(monkeypatch, tmp_path):
         data={
             "prompt_name": "edit",
             "prompt_text": "new text",
-            "model_name": "qwen-image-edit",
+            "model_name": "seedream5-edit",
             "image_size_preset": "portrait_4_3",
             "image_urls": "https://example.com/a.jpg\nhttps://example.com/b.png",
             "action": "run",
@@ -177,12 +212,47 @@ def test_run_with_image_urls(monkeypatch, tmp_path):
 
     assert "Generated 1 image" in response.get_data(as_text=True)
     parsed = captured["parsed"]
-    assert parsed.model == "qwen-image-edit"
+    assert parsed.model == "seedream5-edit"
     assert parsed.params["image_urls"] == [
         "https://example.com/a.jpg",
         "https://example.com/b.png",
     ]
     assert parsed.preview_assets is False
+
+
+def test_asset_load_uses_exif_size_and_image_urls(monkeypatch, tmp_path):
+    client, _, assets_dir = _make_client(tmp_path)
+    assets_dir.mkdir(parents=True, exist_ok=True)
+    asset_path = assets_dir / "loaded_req_1.png"
+    asset_path.write_bytes(b"not a real image")
+
+    monkeypatch.setattr(
+        "imageedit.routes.extract_prompt_from_exif",
+        lambda _path: {
+            "prompt": "loaded prompt",
+            "model": "seedream5-edit",
+            "image_size": "auto_3K",
+            "image_urls": [
+                "https://example.com/source-a.png",
+                "https://example.com/source-b.png",
+            ],
+        },
+    )
+
+    response = client.post(
+        "/",
+        data={
+            "asset_filename": "loaded_req_1.png",
+            "action": "asset_load",
+        },
+    )
+
+    body = response.get_data(as_text=True)
+    assert '<option value="seedream5-edit" selected>' in body
+    assert '<option value="auto_3K" selected>' in body
+    assert 'id="image-urls-group" data-input-mode="multi"' in body
+    assert "https://example.com/source-a.png" in body
+    assert "https://example.com/source-b.png" in body
 
 
 def test_asset_route_rejects_non_images(tmp_path):
@@ -204,10 +274,16 @@ def test_next_copy_name_increments_suffixes():
 
 
 def test_parse_exif_description_extracts_model_and_prompt():
-    text = '{"arguments":{"prompt":"hello world"},"call":"run","endpoint":"x","model":"seedream"}'
+    text = (
+        '{"arguments":{"prompt":"hello world","image_size":"auto_3K",'
+        '"image_urls":["https://example.com/a.png"]},'
+        '"call":"run","endpoint":"x","model":"seedream5-edit"}'
+    )
     result = parse_exif_description(text)
-    assert result["model"] == "seedream"
+    assert result["model"] == "seedream5-edit"
     assert result["prompt"] == "hello world"
+    assert result["image_size"] == "auto_3K"
+    assert result["image_urls"] == ["https://example.com/a.png"]
 
 
 def test_normalize_exif_text_repairs_mojibake():
@@ -230,3 +306,11 @@ def test_prompt_name_from_asset_filename_extracts_suffix():
         _prompt_name_from_asset_filename("truc-yog-1-4f6c1266eff848cb.png")
         == "truc-yog"
     )
+
+
+def test_prompt_name_from_asset_filename_extracts_request_id_name():
+    assert _prompt_name_from_asset_filename("biscuit-1-run-req-123.png") == "biscuit"
+
+
+def test_prompt_name_from_asset_filename_extracts_underscore_request_id_name():
+    assert _prompt_name_from_asset_filename("biscuit_run-req-123_1.png") == "biscuit"

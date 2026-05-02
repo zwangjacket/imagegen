@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import secrets
 import subprocess
 import sys
 import time
@@ -24,22 +25,6 @@ from . import exif
 from .options import ParsedOptions, get_safetensors_url, get_source_image_url
 
 logger = logging.getLogger(__name__)
-
-
-def _truncate_to_word_boundary(text: str, max_chars: int = 50) -> str:
-    """Truncate text to max_chars, rounding down to nearest complete word."""
-    if len(text) <= max_chars:
-        return text
-
-    # Find the last space within the limit
-    truncated = text[:max_chars]
-    last_space = truncated.rfind(" ")
-
-    if last_space > 0:
-        return truncated[:last_space]
-
-    # If no space found, just truncate at max_chars
-    return truncated
 
 
 def generate_images(
@@ -74,9 +59,6 @@ def generate_images_with_urls(
 
     payload = _coerce_payload(invocation)
 
-    # Generate timestamp for filename (YYYYMMDD_HHMMSS)
-    timestamp = time.strftime("%Y%m%d_%H%M%S")
-
     urls = _extract_urls(payload)
     if not urls:
         raise ValueError("fal_client response did not include any image URLs")
@@ -85,44 +67,23 @@ def generate_images_with_urls(
         output_dir = Path("assets")
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Get prompt name from file parameter (if exists)
-    prompt_name = _base_name_from_params(arguments)
-
-    # Get prompt text from parameters
-    prompt_text = arguments.get("prompt", "")
-    if isinstance(prompt_text, str):
-        prompt_text = prompt_text.strip()
-    else:
-        prompt_text = ""
-
-    # Build base component based on what we have
-    if prompt_name:
-        # If we have a prompt name, use: prompt_name + truncated_prompt_text
-        sanitized_name = _sanitize_component(prompt_name)
-        sanitized_text = _sanitize_component(prompt_text)
-        truncated_text = _truncate_to_word_boundary(sanitized_text, max_chars=50)
-        base_component = (
-            f"{sanitized_name}-{truncated_text}" if truncated_text else sanitized_name
-        )
-    elif prompt_text:
-        # If no prompt name but we have prompt text, use truncated prompt text
-        sanitized_text = _sanitize_component(prompt_text)
-        base_component = _truncate_to_word_boundary(sanitized_text, max_chars=50)
-    else:
-        # Fallback to model name if we have nothing
-        base_component = _sanitize_component(parsed.model)
+    file_name_stems = _extract_file_name_stems(payload)
+    base_component = _base_name_from_params(arguments) or parsed.model
+    base_component = _sanitize_component(base_component)
 
     multiple_urls = len(urls) > 1
     written: list[Path] = []
-    for _index, url in enumerate(urls, start=1):
+    for index, url in enumerate(urls, start=1):
         data, content_type = _download(url)
         suffix = _extension_for_url(url, content_type)
         convert_to_jpg = parsed.as_jpg and suffix == ".png"
         if convert_to_jpg:
             suffix = ".jpg"
+        request_component = _sanitize_component(
+            _component_for_image(file_name_stems, index) or secrets.token_hex(8)
+        )
+        filename = f"{base_component}-{index}-{request_component}{suffix}"
 
-        idx_str = f"-{_index}" if multiple_urls else ""
-        filename = f"{base_component}-{timestamp}{idx_str}{suffix}"
         path = output_dir / filename
         if convert_to_jpg:
             _write_jpg(path, data, parsed.jpg_options)
@@ -158,12 +119,32 @@ def _coerce_payload(invocation: Any) -> Any:
     return payload
 
 
-def _extract_request_id(payload: Any) -> str | None:
-    for key in ("request_id", "requestId", "id"):
-        value = _search_first(payload, key)
-        if isinstance(value, str):
-            return value
+def _component_for_image(components: Sequence[str], index: int) -> str | None:
+    if 0 < index <= len(components):
+        return components[index - 1]
+    if components:
+        return components[0]
     return None
+
+
+def _extract_file_name_stems(payload: Any) -> list[str]:
+    collected: list[str] = []
+    _collect_file_name_stems(payload, collected)
+    return collected
+
+
+def _collect_file_name_stems(value: Any, collected: list[str]) -> None:
+    if isinstance(value, Mapping):
+        for key, nested in value.items():
+            if key in {"file_name", "fileName"} and isinstance(nested, str):
+                stem = Path(nested).stem
+                if stem:
+                    collected.append(stem)
+            else:
+                _collect_file_name_stems(nested, collected)
+    elif isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
+        for item in value:
+            _collect_file_name_stems(item, collected)
 
 
 def _extract_urls(payload: Any) -> list[str]:
@@ -191,22 +172,6 @@ def _iter_payload(value: Any) -> Iterable[Any]:
                 stack.append(item)
         else:
             yield current
-
-
-def _search_first(value: Any, key: str) -> Any:
-    stack: MutableSequence[Any] = [value]
-    while stack:
-        current = stack.pop()
-        if isinstance(current, Mapping):
-            for map_key, map_value in current.items():
-                if map_key == key:
-                    return map_value
-                stack.append(map_value)
-        elif isinstance(current, Sequence) and not isinstance(
-            current, (str, bytes, bytearray)
-        ):
-            stack.extend(current)
-    return None
 
 
 def _base_name_from_params(parameters: Mapping[str, Any]) -> str | None:

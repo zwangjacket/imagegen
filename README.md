@@ -62,7 +62,7 @@ and the above example command will render the image of a cookie into assets/.
 This will cost $0.03 at the time of writing.
 
 Use `uv run imagegen --help` to see the models registered in this repository 
-(e.g., schnell, dev, flux-2, flux-2-pro, nano-banana-2, …).
+(e.g., flux-2, flux-2-pro, hidream-dev, nano-banana-2, …).
 
 To run with a prompt file, place the prompt file into the `prompts/` directory with a `.txt` extension.
 This will allow you to run `uv run imagegen -f <prompt_file_name>`.
@@ -76,23 +76,23 @@ If you use `-p` instead of `-f`, you can provide the prompt string on the comman
 - A concrete example with a built‑in model:
 ```
 # Single image with a prompt string
-uv run imagegen schnell -p "a watercolor of a red fox in a birch forest"
+uv run imagegen flux-2 -p "a watercolor of a red fox in a birch forest"
 
-# Generate 2 images using the dev model
-uv run imagegen dev -p "detailed city skyline at dusk" -# 2
+# Generate 2 images using the hidream-dev model
+uv run imagegen hidream-dev -p "detailed city skyline at dusk" -# 2
 
-# If the model supports width/height (dev does), you can specify both -w and -h
-uv run imagegen dev -p "studio photo" -w 832 -h 1216
+# If the model supports width/height (flux-2 does), you can specify both -w and -h
+uv run imagegen flux-2 -p "studio photo" -w 832 -h 1216
 
 # Use the Flask prompt editor (imageedit) if you prefer a UI
 uv run flask --app imageedit.app run --debug
 ```
 
 When generation succeeds, image paths are printed to stdout and the files are written under assets/
-(e.g., assets/schnell-1.png).
+(e.g., assets/flux-2-1.png).
 This makes it easy to capture them in scripts:
 ```
-paths=$(uv run imagegen schnell -p "stained glass hummingbird")
+paths=$(uv run imagegen flux-2 -p "stained glass hummingbird")
 for p in $paths; do open "$p"; done
 ```
 
@@ -211,10 +211,10 @@ Each entry looks like this (simplified):
 
 ```python
 MODEL_REGISTRY = {
-    "schnell": {
-        "endpoint": "fal-ai/flux/schnell",   # as listed on fal.ai
+    "flux-2": {
+        "endpoint": "fal-ai/flux-2",         # as listed on fal.ai
         "call": "subscribe",                 # how to invoke via fal client (e.g., "subscribe" or "run")
-        "doc_url": "https://fal.ai/models/fal-ai/flux/schnell/api#schema",
+        "doc_url": "https://fal.ai/models/fal-ai/flux-2/api#schema",
         "options": {
             "prompt": {
                 "type": "prompt",           # special type: requires -p or -f
@@ -264,7 +264,7 @@ Special options and behaviors implemented in options.py:
 
 ## Steps to add a new model/workflow
 1. Identify the fal.ai endpoint and invocation type (subscribe vs run) and add an entry under MODEL_REGISTRY with endpoint, call, and doc_url.
-2. Define options that map to the model’s inputs following the schema above. Reuse patterns from existing models (e.g., schnell, dev).
+2. Define options that map to the model’s inputs following the schema above. Reuse patterns from existing models (e.g., flux-2, hidream-dev).
 3. If your model supports WIDTHxHEIGHT, set image_size.type to "whi" and add width and height options with types int and flags ["-w", "--width"], ["-h", "--height"].
 4. If the model supports multiple images, add a num_images option with flags ["-#", "--num-images"].
 5. Run help to verify the UX:

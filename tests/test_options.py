@@ -19,7 +19,7 @@ def cwd_tmp_prompts(tmp_path, monkeypatch):
     prompts = tmp_path / "prompts"
     prompts.mkdir()
     (prompts / "cats.txt").write_text("a photo of two cats on a sofa")
-    (prompts / "keks.prompt").write_text("a delicious cookie")
+    (prompts / "biscuit.prompt").write_text("a delicious cookie")
     # create top-level file for slash resolution tests
     (tmp_path / "plain.txt").write_text("plain text prompt")
     monkeypatch.chdir(tmp_path)
@@ -117,26 +117,25 @@ def test_parser_does_not_require_common_keys():
     "argv,expected",
     [
         (
-            ["schnell", "-p", "hello world", "-i", "square", "-%"],
+            ["flux-2", "-p", "hello world", "-i", "square", "-%"],
             {
-                "model": "schnell",
+                "model": "flux-2",
                 "params": {
                     "prompt": "hello world",
                     "image_size": "square",
                     "enable_safety_checker": True,
-                    "num_inference_steps": 4,  # default from registry
+                    "num_inference_steps": 28,
                 },
             },
         ),
         (
-            ["dev", "-p", "hi", "-#", "3"],
+            ["hidream-dev", "-p", "hi", "-#", "3"],
             {
-                "model": "dev",
+                "model": "hidream-dev",
                 "params": {
                     "prompt": "hi",
                     "num_images": 3,
                     "num_inference_steps": 28,
-                    "guidance_scale": 3.5,
                     "enable_safety_checker": False,
                 },
             },
@@ -211,6 +210,42 @@ def test_parser_does_not_require_common_keys():
                 },
             },
         ),
+        (
+            ["ernie-image", "-p", "hi"],
+            {
+                "model": "ernie-image",
+                "params": {
+                    "prompt": "hi",
+                    "image_size": "square_hd",
+                    "num_inference_steps": 50,
+                    "guidance_scale": 5.0,
+                    "num_images": 1,
+                    "enable_prompt_expansion": True,
+                    "enable_safety_checker": True,
+                    "output_format": "jpeg",
+                    "sync_mode": False,
+                    "acceleration": "regular",
+                },
+            },
+        ),
+        (
+            ["ernie-image-turbo", "-p", "hi"],
+            {
+                "model": "ernie-image-turbo",
+                "params": {
+                    "prompt": "hi",
+                    "image_size": "square_hd",
+                    "num_inference_steps": 8,
+                    "guidance_scale": 1.0,
+                    "num_images": 1,
+                    "enable_prompt_expansion": True,
+                    "enable_safety_checker": True,
+                    "output_format": "jpeg",
+                    "sync_mode": False,
+                    "acceleration": "regular",
+                },
+            },
+        ),
     ],
 )
 def test_parse_basic(argv, expected):
@@ -236,7 +271,7 @@ def test_prompt_from_file(cwd_tmp_prompts):
     resolved file path for traceability.
     """
     parser = build_parser(MODEL_REGISTRY)
-    ns = parse_args(["schnell", "-f", "cats"], registry=MODEL_REGISTRY, parser=parser)
+    ns = parse_args(["flux-2", "-f", "cats"], registry=MODEL_REGISTRY, parser=parser)
     assert ns.params["prompt"].startswith("a photo of two cats")
     # file path must be set and point into prompts/cats.txt
     assert ns.params["file"].endswith("prompts/cats.txt")
@@ -245,12 +280,12 @@ def test_prompt_from_file(cwd_tmp_prompts):
 def test_add_prompt_flag_sets_metadata_request():
     parser = build_parser(MODEL_REGISTRY)
     enabled = parse_args(
-        ["schnell", "-p", "hello world", "-a"],
+        ["flux-2", "-p", "hello world", "-a"],
         registry=MODEL_REGISTRY,
         parser=parser,
     )
     disabled = parse_args(
-        ["schnell", "-p", "hello world"],
+        ["flux-2", "-p", "hello world"],
         registry=MODEL_REGISTRY,
         parser=parser,
     )
@@ -261,12 +296,12 @@ def test_add_prompt_flag_sets_metadata_request():
 def test_no_preview_flag_disables_preview():
     parser = build_parser(MODEL_REGISTRY)
     disabled = parse_args(
-        ["schnell", "-p", "hello world", "--no-preview"],
+        ["flux-2", "-p", "hello world", "--no-preview"],
         registry=MODEL_REGISTRY,
         parser=parser,
     )
     enabled = parse_args(
-        ["schnell", "-p", "hello world"],
+        ["flux-2", "-p", "hello world"],
         registry=MODEL_REGISTRY,
         parser=parser,
     )
@@ -277,12 +312,12 @@ def test_no_preview_flag_disables_preview():
 def test_as_jpg_flag_defaults_on_and_can_be_disabled():
     parser = build_parser(MODEL_REGISTRY)
     enabled = parse_args(
-        ["schnell", "-p", "hello world"],
+        ["flux-2", "-p", "hello world"],
         registry=MODEL_REGISTRY,
         parser=parser,
     )
     disabled = parse_args(
-        ["schnell", "-p", "hello world", "--no-as-jpg"],
+        ["flux-2", "-p", "hello world", "--no-as-jpg"],
         registry=MODEL_REGISTRY,
         parser=parser,
     )
@@ -294,7 +329,7 @@ def test_jpg_options_override_defaults():
     parser = build_parser(MODEL_REGISTRY)
     parsed = parse_args(
         [
-            "schnell",
+            "flux-2",
             "-p",
             "hello world",
             "--jpg-options",
@@ -315,7 +350,7 @@ def test_jpg_options_reject_invalid_key():
     parser = build_parser(MODEL_REGISTRY)
     with pytest.raises(SystemExit):
         parse_args(
-            ["schnell", "-p", "hello world", "--jpg-options", "fantasy=17"],
+            ["flux-2", "-p", "hello world", "--jpg-options", "fantasy=17"],
             registry=MODEL_REGISTRY,
             parser=parser,
         )
@@ -333,8 +368,8 @@ def test_help_includes_common_options():
         for action in parser._actions
         if isinstance(action, argparse._SubParsersAction)  # type: ignore[attr-defined]
     )
-    schnell_parser = subparsers_action.choices["schnell"]
-    assert "--no-preview" in schnell_parser.format_help()
+    flux2_parser = subparsers_action.choices["flux-2"]
+    assert "--no-preview" in flux2_parser.format_help()
 
 
 def test_width_height_with_image_size_ok_and_precedence():
@@ -344,11 +379,11 @@ def test_width_height_with_image_size_ok_and_precedence():
     explicit size (-w/-h) are present, the parser should prefer explicit values;
     it should also enforce that width and height are provided together.
     """
-    # Use a model that supports width/height (dev)
+    # Use a model that supports width/height
     parser = build_parser(MODEL_REGISTRY)
     # -i with -w/-h should be allowed; width/height take precedence and image_size ignored
     ns = parse_args(
-        ["dev", "-p", "x", "-i", "square", "-w", "1024", "-h", "768"],
+        ["flux-2", "-p", "x", "-i", "square", "-w", "1024", "-h", "768"],
         registry=MODEL_REGISTRY,
         parser=parser,
     )
@@ -356,7 +391,7 @@ def test_width_height_with_image_size_ok_and_precedence():
     # Missing one of -w/-h should error when any is provided
     with pytest.raises(SystemExit):
         parse_args(
-            ["dev", "-p", "x", "-w", "1024"], registry=MODEL_REGISTRY, parser=parser
+            ["flux-2", "-p", "x", "-w", "1024"], registry=MODEL_REGISTRY, parser=parser
         )
 
 
@@ -369,7 +404,7 @@ def test_loras_list_parsing():
     """
     parser = build_parser(MODEL_REGISTRY)
     ns = parse_args(
-        ["krea-lora", "-p", "x", "--loras", "a,b", "--loras", "c"],
+        ["hidream-full", "-p", "x", "--loras", "a,b", "--loras", "c"],
         registry=MODEL_REGISTRY,
         parser=parser,
     )
@@ -385,7 +420,7 @@ def test_loras_weight_parsing():
     parser = build_parser(MODEL_REGISTRY)
     ns = parse_args(
         [
-            "krea-lora",
+            "hidream-full",
             "-p",
             "x",
             "--loras",
@@ -417,7 +452,7 @@ def test_image_url_normalization():
             "-p",
             "x",
             "--image-url",
-            "keks,cookie.jpg",
+            "biscuit,cookie.jpg",
             "--image-url",
             "https://example.com/bla.jpg",
         ],
@@ -426,7 +461,7 @@ def test_image_url_normalization():
     )
     base = get_source_image_url().rstrip("/") + "/"
     assert ns.params["image_urls"] == [
-        f"{base}keks.jpg",
+        f"{base}biscuit.jpg",
         f"{base}cookie.jpg",
         "https://example.com/bla.jpg",
     ]
@@ -442,22 +477,22 @@ def test_file_resolution_variants(cwd_tmp_prompts):
     parser = build_parser(MODEL_REGISTRY)
     # 4.1: contains a slash -> literal relative path
     ns = parse_args(
-        ["schnell", "-f", "./plain.txt"], registry=MODEL_REGISTRY, parser=parser
+        ["flux-2", "-f", "./plain.txt"], registry=MODEL_REGISTRY, parser=parser
     )
     assert ns.params["file"].endswith("plain.txt")
     assert ns.params["prompt"] == "plain text prompt"
     # 4.1: absolute path
     abs_path = str((cwd_tmp_prompts / "plain.txt").absolute())
-    ns = parse_args(["schnell", "-f", abs_path], registry=MODEL_REGISTRY, parser=parser)
+    ns = parse_args(["flux-2", "-f", abs_path], registry=MODEL_REGISTRY, parser=parser)
     assert ns.params["file"] == abs_path
     # 4.2.1: has dot, no slash -> prompts/filespec
     ns = parse_args(
-        ["schnell", "-f", "keks.prompt"], registry=MODEL_REGISTRY, parser=parser
+        ["flux-2", "-f", "biscuit.prompt"], registry=MODEL_REGISTRY, parser=parser
     )
-    assert ns.params["file"].endswith("prompts/keks.prompt")
+    assert ns.params["file"].endswith("prompts/biscuit.prompt")
     assert ns.params["prompt"] == "a delicious cookie"
     # 4.2.2: no dot, no slash -> prompts/filespec.txt
-    ns = parse_args(["schnell", "-f", "cats"], registry=MODEL_REGISTRY, parser=parser)
+    ns = parse_args(["flux-2", "-f", "cats"], registry=MODEL_REGISTRY, parser=parser)
     assert ns.params["file"].endswith("prompts/cats.txt")
 
 
@@ -483,7 +518,7 @@ def test_model_help_shows_model_specific_options(capsys):
     """
     parser = build_parser(MODEL_REGISTRY)
     with pytest.raises(SystemExit):
-        parser.parse_args(["dev", "--help"])
+        parser.parse_args(["flux-2", "--help"])
     help_text = capsys.readouterr().out
     assert "--num-inference-steps" in help_text
     assert "--guidance-scale" in help_text
@@ -499,15 +534,7 @@ def test_model_specific_option_parsing():
     """
     parser = build_parser(MODEL_REGISTRY)
     ns = parse_args(
-        [
-            "dev",
-            "-p",
-            "hi",
-            "--num-inference-steps",
-            "8",
-            "--guidance-scale",
-            "4.0",
-        ],
+        ["flux-2", "-p", "hi", "--num-inference-steps", "8", "--guidance-scale", "4.0"],
         registry=MODEL_REGISTRY,
         parser=parser,
     )
@@ -525,10 +552,10 @@ def test_seed_default_is_random(monkeypatch):
     parser = build_parser(MODEL_REGISTRY)
     sentinel = 123456789
     monkeypatch.setattr("imagegen.options.secrets.randbits", lambda bits: sentinel)
-    ns = parse_args(["schnell", "-p", "hello"], registry=MODEL_REGISTRY, parser=parser)
+    ns = parse_args(["flux-2", "-p", "hello"], registry=MODEL_REGISTRY, parser=parser)
     assert ns.params["seed"] == sentinel
     ns_with_value = parse_args(
-        ["schnell", "-p", "hello", "-s", "99"], registry=MODEL_REGISTRY, parser=parser
+        ["flux-2", "-p", "hello", "-s", "99"], registry=MODEL_REGISTRY, parser=parser
     )
     assert ns_with_value.params["seed"] == 99
 
