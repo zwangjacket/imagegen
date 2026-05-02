@@ -94,8 +94,8 @@ def test_generate_images_run_invocation(monkeypatch, tmp_path, reload_imagegen):
     monkeypatch.setattr(mod.urllib.request, "urlopen", lambda url: next(responses))
 
     parsed = ParsedOptions(
-        model="schnell",
-        endpoint="fal-ai/flux/schnell",
+        model="flux-2",
+        endpoint="fal-ai/flux-2",
         call="run",
         params={
             "prompt": "hello",
@@ -106,7 +106,7 @@ def test_generate_images_run_invocation(monkeypatch, tmp_path, reload_imagegen):
 
     output = mod.generate_images(parsed, output_dir=tmp_path)
 
-    assert captured["endpoint"] == "fal-ai/flux/schnell"
+    assert captured["endpoint"] == "fal-ai/flux-2"
     assert captured["arguments"]["prompt"] == "hello"
     assert len(output) == 2
 
@@ -119,7 +119,7 @@ def test_generate_images_run_invocation(monkeypatch, tmp_path, reload_imagegen):
     assert opened == [expected_1, expected_2]
     assert emitted == [
         (
-            "fal-ai/flux/schnell",
+            "fal-ai/flux-2",
             "run",
             {"prompt": "hello", "file": "prompts/cats.txt"},
         )
@@ -186,8 +186,8 @@ def test_generate_images_subscribe(monkeypatch, tmp_path, reload_imagegen):
     )
 
     parsed = ParsedOptions(
-        model="dev",
-        endpoint="fal-ai/flux/dev",
+        model="hidream-dev",
+        endpoint="fal-ai/hidream-i1-dev",
         call="subscribe",
         params={
             "prompt": "hi",
@@ -197,10 +197,10 @@ def test_generate_images_subscribe(monkeypatch, tmp_path, reload_imagegen):
 
     output = mod.generate_images(parsed, output_dir=tmp_path)
 
-    expected = tmp_path / "dev-1-sub-req-789.png"
+    expected = tmp_path / "hidream-dev-1-sub-req-789.png"
     assert output == [expected]
     assert expected.read_bytes() == b"sub"
-    assert captured["endpoint"] == "fal-ai/flux/dev"
+    assert captured["endpoint"] == "fal-ai/hidream-i1-dev"
     assert captured["arguments"]["prompt"] == "hi"
     assert captured["with_logs"] is False
     assert opened == [expected]
@@ -209,7 +209,7 @@ def test_generate_images_subscribe(monkeypatch, tmp_path, reload_imagegen):
     ]
     assert emitted == [
         (
-            "fal-ai/flux/dev",
+            "fal-ai/hidream-i1-dev",
             "subscribe",
             {"prompt": "hi"},
         )
@@ -252,8 +252,8 @@ def test_generate_images_adds_prompt_description_when_requested(
     monkeypatch.setenv("SOURCE_IMAGE_URL", "https://example.com/k/")
     monkeypatch.setenv("SAFETENSORS_URL", "https://example.com/j/")
     parsed = ParsedOptions(
-        model="schnell",
-        endpoint="fal-ai/flux/schnell",
+        model="flux-2",
+        endpoint="fal-ai/flux-2",
         call="run",
         params={
             "prompt": "  dreamy forest scene  ",
@@ -362,8 +362,8 @@ def test_generate_images_skips_preview_when_disabled(
     )
 
     parsed = ParsedOptions(
-        model="schnell",
-        endpoint="fal-ai/flux/schnell",
+        model="flux-2",
+        endpoint="fal-ai/flux-2",
         call="run",
         params={"prompt": "skip", "file": "prompts/skip.txt"},
         preview_assets=False,
@@ -407,8 +407,8 @@ def test_generate_images_converts_png_to_jpg(monkeypatch, tmp_path, reload_image
     )
 
     parsed = ParsedOptions(
-        model="schnell",
-        endpoint="fal-ai/flux/schnell",
+        model="flux-2",
+        endpoint="fal-ai/flux-2",
         call="run",
         params={"prompt": "convert"},
         as_jpg=True,
@@ -422,7 +422,7 @@ def test_generate_images_converts_png_to_jpg(monkeypatch, tmp_path, reload_image
 
     output = mod.generate_images(parsed, output_dir=tmp_path)
 
-    expected = tmp_path / "schnell-1-conv-req.jpg"
+    expected = tmp_path / "flux-2-1-conv-req.jpg"
     assert output == [expected]
     assert expected.read_bytes()[:2] == b"\xff\xd8"
 

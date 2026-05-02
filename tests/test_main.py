@@ -24,10 +24,10 @@ def run_main_argv(argv: list[str], capsys):
 @pytest.mark.parametrize(
     "argv,expected_paths",
     [
-        (["schnell", "-p", "hello"], [Path("assets/schnell-1.png")]),
+        (["flux-2", "-p", "hello"], [Path("assets/flux-2-1.png")]),
         (
-            ["dev", "-p", "hi", "-#", "2"],
-            [Path("assets/dev-1.png"), Path("assets/dev-2.png")],
+            ["hidream-dev", "-p", "hi", "-#", "2"],
+            [Path("assets/hidream-dev-1.png"), Path("assets/hidream-dev-2.png")],
         ),
     ],
 )

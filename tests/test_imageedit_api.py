@@ -50,7 +50,7 @@ def _index_meta_token(response_text: str) -> str:
 def test_api_requires_token(tmp_path):
     client, _, _ = _make_client(tmp_path)
 
-    response = client.get("/api/model-sizes/schnell")
+    response = client.get("/api/model-sizes/flux-2")
 
     assert response.status_code == 401
 
@@ -78,7 +78,7 @@ def test_index_issues_browser_token_for_api_calls(tmp_path):
     assert token
 
     api_response = client.get(
-        "/api/model-sizes/schnell", headers={"Authorization": f"Bearer {token}"}
+        "/api/model-sizes/flux-2", headers={"Authorization": f"Bearer {token}"}
     )
     assert api_response.status_code == 200
 
@@ -205,12 +205,12 @@ def test_api_model_sizes_reflects_registry_values(tmp_path):
     client, _, _ = _make_client(tmp_path)
     headers = _auth_headers(client)
 
-    response = client.get("/api/model-sizes/schnell", headers=headers)
+    response = client.get("/api/model-sizes/flux-2", headers=headers)
     payload = response.get_json()
 
-    assert payload["sizes"] == _get_allowed_sizes("schnell")
-    assert payload["default"] == _default_option("schnell", "image_size")
-    assert payload["supports_image_urls"] is _model_supports_image_urls("schnell")
+    assert payload["sizes"] == _get_allowed_sizes("flux-2")
+    assert payload["default"] == _default_option("flux-2", "image_size")
+    assert payload["supports_image_urls"] is _model_supports_image_urls("flux-2")
 
 
 def test_api_model_sizes_flags_image_urls_support(tmp_path):

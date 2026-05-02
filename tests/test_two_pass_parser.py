@@ -14,10 +14,10 @@ def test_disallow_options_not_in_model():
     invalid parameters to the FAL API.
     """
     parser = build_parser(MODEL_REGISTRY)
-    # schnell does not support --loras; this should raise a SystemExit from argparse
+    # flux-2 does not support --loras; this should raise a SystemExit from argparse
     with pytest.raises(SystemExit):
         parse_args(
-            ["schnell", "-p", "x", "--loras", "abc"],
+            ["flux-2", "-p", "x", "--loras", "abc"],
             registry=MODEL_REGISTRY,
             parser=parser,
         )
@@ -31,9 +31,9 @@ def test_allow_options_present_in_model():
     receive fully-qualified values.
     """
     parser = build_parser(MODEL_REGISTRY)
-    # krea-lora supports --loras
+    # hidream-full supports --loras
     ns = parse_args(
-        ["krea-lora", "-p", "x", "--loras", "a,b", "--loras", "c"],
+        ["hidream-full", "-p", "x", "--loras", "a,b", "--loras", "c"],
         registry=MODEL_REGISTRY,
         parser=parser,
     )

@@ -129,7 +129,7 @@ def test_run_generates_images(monkeypatch, tmp_path):
         data={
             "prompt_name": "delta",
             "prompt_text": "delta text new",
-            "model_name": "schnell",
+            "model_name": "flux-2",
             "image_size_preset": "square",
             "include_prompt_metadata": "on",
             "action": "run",
@@ -140,7 +140,7 @@ def test_run_generates_images(monkeypatch, tmp_path):
     assert "Generated 1 image" in body
     assert "assets/delta-1.png" in body
     parsed = captured["parsed"]
-    assert parsed.model == "schnell"
+    assert parsed.model == "flux-2"
     assert parsed.add_prompt_metadata is True
     assert parsed.params["image_size"] == "square"
     assert parsed.preview_assets is False
@@ -203,7 +203,7 @@ def test_run_with_image_urls(monkeypatch, tmp_path):
         data={
             "prompt_name": "edit",
             "prompt_text": "new text",
-            "model_name": "qwen-image-edit",
+            "model_name": "seedream5-edit",
             "image_size_preset": "portrait_4_3",
             "image_urls": "https://example.com/a.jpg\nhttps://example.com/b.png",
             "action": "run",
@@ -212,7 +212,7 @@ def test_run_with_image_urls(monkeypatch, tmp_path):
 
     assert "Generated 1 image" in response.get_data(as_text=True)
     parsed = captured["parsed"]
-    assert parsed.model == "qwen-image-edit"
+    assert parsed.model == "seedream5-edit"
     assert parsed.params["image_urls"] == [
         "https://example.com/a.jpg",
         "https://example.com/b.png",
