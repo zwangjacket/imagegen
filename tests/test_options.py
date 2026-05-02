@@ -211,6 +211,42 @@ def test_parser_does_not_require_common_keys():
                 },
             },
         ),
+        (
+            ["ernie-image", "-p", "hi"],
+            {
+                "model": "ernie-image",
+                "params": {
+                    "prompt": "hi",
+                    "image_size": "square_hd",
+                    "num_inference_steps": 50,
+                    "guidance_scale": 5.0,
+                    "num_images": 1,
+                    "enable_prompt_expansion": True,
+                    "enable_safety_checker": True,
+                    "output_format": "jpeg",
+                    "sync_mode": False,
+                    "acceleration": "regular",
+                },
+            },
+        ),
+        (
+            ["ernie-image-turbo", "-p", "hi"],
+            {
+                "model": "ernie-image-turbo",
+                "params": {
+                    "prompt": "hi",
+                    "image_size": "square_hd",
+                    "num_inference_steps": 8,
+                    "guidance_scale": 1.0,
+                    "num_images": 1,
+                    "enable_prompt_expansion": True,
+                    "enable_safety_checker": True,
+                    "output_format": "jpeg",
+                    "sync_mode": False,
+                    "acceleration": "regular",
+                },
+            },
+        ),
     ],
 )
 def test_parse_basic(argv, expected):
