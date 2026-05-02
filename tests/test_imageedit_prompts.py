@@ -146,6 +146,41 @@ def test_run_generates_images(monkeypatch, tmp_path):
     assert parsed.preview_assets is False
 
 
+def test_run_without_prompt_name_uses_prompt_text(monkeypatch, tmp_path):
+    client, prompts_dir, _ = _make_client(tmp_path)
+    prompts_dir.mkdir(parents=True, exist_ok=True)
+
+    captured = {}
+
+    def fake_generate(parsed):
+        captured["parsed"] = parsed
+        return [Path("assets/flux-2-1-fallback.png")], [
+            "https://example.com/flux-2-1-fallback.png"
+        ]
+
+    monkeypatch.setattr(
+        "imageedit.services.generation.generate_images_with_urls", fake_generate
+    )
+
+    response = client.post(
+        "/",
+        data={
+            "prompt_name": "",
+            "prompt_text": "loose prompt text",
+            "model_name": "flux-2",
+            "image_size_preset": "square",
+            "action": "run",
+        },
+    )
+
+    assert "Generated 1 image" in response.get_data(as_text=True)
+    assert not (prompts_dir / ".txt").exists()
+    parsed = captured["parsed"]
+    assert parsed.model == "flux-2"
+    assert parsed.params["prompt"] == "loose prompt text"
+    assert "file" not in parsed.params
+
+
 def test_run_with_image_urls(monkeypatch, tmp_path):
     # REVIEW: 2026-01-04 editor upgrade
     client, prompts_dir, _ = _make_client(tmp_path)

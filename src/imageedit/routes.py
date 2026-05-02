@@ -214,12 +214,15 @@ def index() -> str:
                 if not selected_model:
                     error_message = "A model must be selected before running."
                 else:
-                    prompt_file = prompt_path(prompts_dir, selected_prompt)
-                    write_prompt(prompt_file, prompt_text)
+                    prompt_file = None
+                    if selected_prompt:
+                        prompt_file = prompt_path(prompts_dir, selected_prompt)
+                        write_prompt(prompt_file, prompt_text)
                     run_result = run_generation(
                         selected_model=selected_model,
                         prompt_name=selected_prompt,
                         prompt_path=prompt_file,
+                        prompt_text=prompt_text,
                         include_prompt_metadata=include_prompt_metadata,
                         image_size=image_size_value,
                         image_urls=image_urls_text if supports_image_urls else "",
