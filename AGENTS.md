@@ -39,6 +39,7 @@
 - Prefer behaviour-driven `pytest` cases covering success paths and argparse errors (see `tests/test_two_pass_parser.py`).
 - Use temporary directories for prompt-file tests instead of committing sample assets.
 - Add regression tests whenever changing registry schema, defaults, or CLI flags.
+- Treat `enable_safety_checker` as opt-in: when a model exposes it, its `registry.py` default must be `False`, and tests for `-%` / `--enable-safety-checker` should assert `False` by default and `True` only when the flag is passed.
 
 ## Commit & Pull Request Guidelines
 - History shows short present-tense summaries (e.g., `Option parsing`); follow that style and stay under 60 chars.
@@ -58,4 +59,5 @@
 - For the Flask app, make use of the Flask ecosystem and use existing Flask modules where useful
   (forms, validation, sessions, etc.)
 - Treat `registry.py` as the source of truth; document and test any change in available options.
+- For new models, set `enable_safety_checker["default"]` to `False` whenever that option exists.
 - We rely on `uv` to provide the dependency environment, so import `fal_client` directly (no lazy fallback).

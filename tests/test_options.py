@@ -27,11 +27,12 @@ def cwd_tmp_prompts(tmp_path, monkeypatch):
 
 
 def test_registry_structure():
-    """Validates registry schema for each model and absence of legacy keys.
+    """Validates registry schema, including the opt-in safety-checker default.
 
     Why: The CLI builds its parser from this metadata. Missing fields or
     lingering legacy keys ('allowed', 'defaults') would break parsing or
-    misconfigure options.
+    misconfigure options. When a model exposes `enable_safety_checker`, the
+    registry default must stay `False`; `-%` is the explicit opt-in path.
     """
     for name, model in MODEL_REGISTRY.items():
         assert "options" in model and isinstance(model["options"], dict), (
@@ -48,6 +49,10 @@ def test_registry_structure():
             assert "help" in opt_spec, f"option {opt_name} in {name} missing help text"
             if opt_name == "image_size":
                 assert opt_spec["type"] in {"i", "whi"}
+            if opt_name == "enable_safety_checker":
+                assert opt_spec["default"] is False, (
+                    f"model {name} should default enable_safety_checker to False"
+                )
             if opt_spec["type"] == "prompt":
                 assert opt_spec["default"] is None or isinstance(
                     opt_spec["default"], str
@@ -63,6 +68,8 @@ def test_parser_does_not_require_common_keys():
     Why: Models may define only a subset of common options. The parser must not
     implicitly require unrelated keys; it should rely solely on the provided
     typed option specs and still apply common defaults like seed/image_size.
+    For `enable_safety_checker`, the registry default remains `False` and `-%`
+    is the explicit opt-in switch.
     """
     # Build a minimal registry ensuring parser consumes typed option metadata
     reg = {
@@ -221,7 +228,7 @@ def test_parser_does_not_require_common_keys():
                     "guidance_scale": 5.0,
                     "num_images": 1,
                     "enable_prompt_expansion": True,
-                    "enable_safety_checker": True,
+                    "enable_safety_checker": False,
                     "output_format": "jpeg",
                     "sync_mode": False,
                     "acceleration": "regular",
@@ -239,7 +246,7 @@ def test_parser_does_not_require_common_keys():
                     "guidance_scale": 1.0,
                     "num_images": 1,
                     "enable_prompt_expansion": True,
-                    "enable_safety_checker": True,
+                    "enable_safety_checker": False,
                     "output_format": "jpeg",
                     "sync_mode": False,
                     "acceleration": "regular",
@@ -253,7 +260,9 @@ def test_parse_basic(argv, expected):
 
     Why: Ensures command-line args are translated into model name and params,
     including model defaults and common flags, which is foundational for all
-    image generation calls.
+    image generation calls. For models with `enable_safety_checker`, the
+    default comes from `registry.py` and should stay `False` unless `-%` is
+    passed.
     """
     parser = build_parser(MODEL_REGISTRY)
     ns = parse_args(argv, registry=MODEL_REGISTRY, parser=parser)
