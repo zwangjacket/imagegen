@@ -7,7 +7,7 @@ pytestmark = pytest.mark.usefixtures("test_env_file")
 
 
 def test_hidream_fast_defaults():
-    """Ensures hidream-fast exposes documented defaults and auto seed handling."""
+    """Ensures hidream-fast keeps the registry defaults, including safety off."""
     parser = build_parser(MODEL_REGISTRY)
     ns = parse_args(
         ["hidream-fast", "-p", "test sketch"],
@@ -28,7 +28,7 @@ def test_hidream_fast_defaults():
 
 
 def test_hidream_fast_overrides():
-    """Covers flag overrides for hidream-fast specific options."""
+    """Covers flag overrides, including `-%` opt-in for the safety checker."""
     parser = build_parser(MODEL_REGISTRY)
     ns = parse_args(
         [
