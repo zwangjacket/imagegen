@@ -400,7 +400,9 @@ def test_width_height_with_image_size_ok_and_precedence():
     # Missing one of -w/-h should error when any is provided
     with pytest.raises(ValueError):
         parse_args(
-            ["flux-2", "-p", "x", "--width", "1024"], registry=MODEL_REGISTRY, parser=parser
+            ["flux-2", "-p", "x", "--width", "1024"],
+            registry=MODEL_REGISTRY,
+            parser=parser,
         )
 
 

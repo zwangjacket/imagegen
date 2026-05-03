@@ -28,6 +28,8 @@ Rules enforced:
 from __future__ import annotations
 
 import argparse
+import contextlib
+import io
 import json
 import os
 import secrets
@@ -477,9 +479,6 @@ def build_parser(
 
     return parser
 
-
-import io
-import contextlib
 
 def parse_args(
     argv: list[str],

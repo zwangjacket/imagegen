@@ -70,8 +70,6 @@ def generate_images_with_urls(
     file_name_stems = _extract_file_name_stems(payload)
     base_component = _base_name_from_params(arguments) or parsed.model
     base_component = _sanitize_component(base_component)
-
-    multiple_urls = len(urls) > 1
     written: list[Path] = []
     for index, url in enumerate(urls, start=1):
         data, content_type = _download(url)

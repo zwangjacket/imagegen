@@ -113,7 +113,6 @@ def test_generate_images_run_invocation(monkeypatch, tmp_path, reload_imagegen):
     expected_1 = tmp_path / "cats-1-media-file-123.png"
     expected_2 = tmp_path / "cats-2-media-file-456.jpg"
 
-
     assert output == [expected_1, expected_2]
     assert expected_1.read_bytes() == b"img1"
     assert expected_2.read_bytes() == b"img2"
