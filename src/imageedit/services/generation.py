@@ -11,6 +11,7 @@ from typing import Any
 from image_common.prompts import split_multivalue_field
 from imagegen.imagegen import build_exif_description, generate_images_with_urls
 from imagegen.options import parse_args
+from imagegen.registry import MODEL_REGISTRY
 
 from .uploads import log_generated_images, log_generation_request, resolve_upload_ids
 
@@ -39,6 +40,11 @@ def run_generation(
             "paths": [],
             "message": None,
         }
+
+    model_info = MODEL_REGISTRY.get(selected_model, {})
+    if "enable_safety_checker" in model_info.get("options", {}):
+        args.append("--no-enable-safety-checker")
+
     if include_prompt_metadata:
         args.append("-a")
     if image_size.strip():

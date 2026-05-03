@@ -14,8 +14,8 @@ def test_disallow_options_not_in_model():
     invalid parameters to the FAL API.
     """
     parser = build_parser(MODEL_REGISTRY)
-    # flux-2 does not support --loras; this should raise a SystemExit from argparse
-    with pytest.raises(SystemExit):
+    # flux-2 does not support --loras; this should raise a ValueError from argparse
+    with pytest.raises(ValueError):
         parse_args(
             ["flux-2", "-p", "x", "--loras", "abc"],
             registry=MODEL_REGISTRY,

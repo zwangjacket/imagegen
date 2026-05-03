@@ -478,6 +478,9 @@ def build_parser(
     return parser
 
 
+import io
+import contextlib
+
 def parse_args(
     argv: list[str],
     *,
@@ -492,145 +495,151 @@ def parse_args(
     if parser is None:
         parser = build_parser(registry)
 
-    ns = parser.parse_args(argv)
+    f = io.StringIO()
+    try:
+        with contextlib.redirect_stderr(f):
+            ns = parser.parse_args(argv)
 
-    model_name_value = getattr(ns, "model", None)
-    if not isinstance(model_name_value, str):
-        parser.error("model name must be provided")
-    if model_name_value not in registry:
-        model_names = ", ".join(sorted(registry.keys()))
-        parser.error(
-            f"unknown model '{model_name_value}' - valid names are: {model_names}"
+        model_name_value = getattr(ns, "model", None)
+        if not isinstance(model_name_value, str):
+            parser.error("model name must be provided")
+        if model_name_value not in registry:
+            model_names = ", ".join(sorted(registry.keys()))
+            parser.error(
+                f"unknown model '{model_name_value}' - valid names are: {model_names}"
+            )
+        model_name = model_name_value
+
+        model_def = registry[model_name]
+        option_specs: dict[str, dict[str, Any]] = {
+            key: (
+                dict(value)
+                if isinstance(value, Mapping)
+                else {"type": None, "default": value}
+            )
+            for key, value in model_def.get("options", {}).items()
+        }
+
+        params: dict[str, Any] = {}
+        for key, spec in option_specs.items():
+            default = spec.get("default")
+            if default is not None and spec.get("type") != "prompt":
+                params[key] = default
+
+        model_parser = getattr(ns, "_model_parser", parser)
+
+        prompt_spec = option_specs.get("prompt")
+        if prompt_spec and prompt_spec.get("type") == "prompt":
+            if getattr(ns, "prompt", None) is not None:
+                params["prompt"] = ns.prompt
+                params.pop("file", None)
+            elif getattr(ns, "file", None) is not None:
+                file_path = _resolve_filespec(ns.file, base_dir=base_dir)
+                params["file"] = str(file_path)
+                params["prompt"] = _prompt_from_file(file_path)
+            else:
+                default_prompt = prompt_spec.get("default")
+                if default_prompt is not None:
+                    params["prompt"] = default_prompt
+
+        image_size_spec = option_specs.get("image_size")
+        allows_dimensions = (
+            image_size_spec is not None and image_size_spec.get("type") == "whi"
         )
-    model_name = model_name_value
+        allows_width = "width" in option_specs
+        allows_height = "height" in option_specs
+        width = getattr(ns, "width", None) if allows_width else None
+        height = getattr(ns, "height", None) if allows_height else None
+        used_dimensions = False
+        if allows_width or allows_height:
+            if (width is not None) ^ (height is not None):
+                model_parser.error("--width and --height must be provided together")
+            if width is not None and height is not None:
+                if not allows_dimensions:
+                    model_parser.error(
+                        "--width/--height are only supported for models that allow explicit dimensions"
+                    )
+                params["image_size"] = {"width": width, "height": height}
+                used_dimensions = True
 
-    model_def = registry[model_name]
-    option_specs: dict[str, dict[str, Any]] = {
-        key: (
-            dict(value)
-            if isinstance(value, Mapping)
-            else {"type": None, "default": value}
+        image_size_value = getattr(ns, "image_size", None) if image_size_spec else None
+        if image_size_value is not None and not used_dimensions:
+            params["image_size"] = image_size_value
+
+        if "loras" in option_specs:
+            loras_values = getattr(ns, "loras", None)
+            if loras_values:
+                params["loras"] = _normalize_loras(loras_values)
+
+        if "image_urls" in option_specs:
+            image_urls = getattr(ns, "image_urls", None)
+            if image_urls:
+                params["image_urls"] = _normalize_image_urls(image_urls)
+
+        if "image_url" in option_specs:
+            image_url = getattr(ns, "image_url", None)
+            if image_url:
+                params["image_url"] = _normalize_image_url(image_url)
+
+        for key, spec in option_specs.items():
+            if key in {
+                "prompt",
+                "image_size",
+                "width",
+                "height",
+                "loras",
+                "image_urls",
+                "image_url",
+            }:
+                continue
+            opt_type = spec.get("type")
+            if opt_type is bool:
+                if hasattr(ns, key):
+                    params[key] = getattr(ns, key)
+                continue
+
+            value = getattr(ns, key, None)
+            if value is not None:
+                params[key] = value
+
+        if "seed" in option_specs:
+            seed_spec = option_specs["seed"]
+            parsed_seed = getattr(ns, "seed", None)
+            if parsed_seed is not None:
+                params["seed"] = parsed_seed
+            elif seed_spec.get("default") is None:
+                params["seed"] = secrets.randbits(32)
+            else:
+                params["seed"] = seed_spec.get("default")
+
+        if model_name.startswith("nano-banana-2") and "image_size" in params:
+            params["aspect_ratio"] = params.pop("image_size")
+
+        jpg_options = _parse_jpg_options(getattr(ns, "jpg_options", None), model_parser)
+
+        # Parse extra metadata
+        extra_metadata = {}
+        meta_json = getattr(ns, "meta", None)
+        if meta_json:
+            try:
+                extra_metadata = json.loads(meta_json)
+            except json.JSONDecodeError as exc:
+                model_parser.error(f"invalid JSON in --meta: {exc}")
+
+        return ParsedOptions(
+            model=model_name,
+            endpoint=model_def["endpoint"],
+            call=model_def["call"],
+            params=params,
+            add_prompt_metadata=bool(getattr(ns, "add_prompt_metadata", False)),
+            preview_assets=bool(getattr(ns, "preview_assets", True)),
+            as_jpg=bool(getattr(ns, "as_jpg", True)),
+            jpg_options=jpg_options,
+            extra_metadata=extra_metadata,
         )
-        for key, value in model_def.get("options", {}).items()
-    }
-
-    params: dict[str, Any] = {}
-    for key, spec in option_specs.items():
-        default = spec.get("default")
-        if default is not None and spec.get("type") != "prompt":
-            params[key] = default
-
-    model_parser = getattr(ns, "_model_parser", parser)
-
-    prompt_spec = option_specs.get("prompt")
-    if prompt_spec and prompt_spec.get("type") == "prompt":
-        if getattr(ns, "prompt", None) is not None:
-            params["prompt"] = ns.prompt
-            params.pop("file", None)
-        elif getattr(ns, "file", None) is not None:
-            file_path = _resolve_filespec(ns.file, base_dir=base_dir)
-            params["file"] = str(file_path)
-            params["prompt"] = _prompt_from_file(file_path)
-        else:
-            default_prompt = prompt_spec.get("default")
-            if default_prompt is not None:
-                params["prompt"] = default_prompt
-
-    image_size_spec = option_specs.get("image_size")
-    allows_dimensions = (
-        image_size_spec is not None and image_size_spec.get("type") == "whi"
-    )
-    allows_width = "width" in option_specs
-    allows_height = "height" in option_specs
-    width = getattr(ns, "width", None) if allows_width else None
-    height = getattr(ns, "height", None) if allows_height else None
-    used_dimensions = False
-    if allows_width or allows_height:
-        if (width is not None) ^ (height is not None):
-            model_parser.error("--width and --height must be provided together")
-        if width is not None and height is not None:
-            if not allows_dimensions:
-                model_parser.error(
-                    "--width/--height are only supported for models that allow explicit dimensions"
-                )
-            params["image_size"] = {"width": width, "height": height}
-            used_dimensions = True
-
-    image_size_value = getattr(ns, "image_size", None) if image_size_spec else None
-    if image_size_value is not None and not used_dimensions:
-        params["image_size"] = image_size_value
-
-    if "loras" in option_specs:
-        loras_values = getattr(ns, "loras", None)
-        if loras_values:
-            params["loras"] = _normalize_loras(loras_values)
-
-    if "image_urls" in option_specs:
-        image_urls = getattr(ns, "image_urls", None)
-        if image_urls:
-            params["image_urls"] = _normalize_image_urls(image_urls)
-
-    if "image_url" in option_specs:
-        image_url = getattr(ns, "image_url", None)
-        if image_url:
-            params["image_url"] = _normalize_image_url(image_url)
-
-    for key, spec in option_specs.items():
-        if key in {
-            "prompt",
-            "image_size",
-            "width",
-            "height",
-            "loras",
-            "image_urls",
-            "image_url",
-        }:
-            continue
-        opt_type = spec.get("type")
-        if opt_type is bool:
-            if hasattr(ns, key):
-                params[key] = getattr(ns, key)
-            continue
-
-        value = getattr(ns, key, None)
-        if value is not None:
-            params[key] = value
-
-    if "seed" in option_specs:
-        seed_spec = option_specs["seed"]
-        parsed_seed = getattr(ns, "seed", None)
-        if parsed_seed is not None:
-            params["seed"] = parsed_seed
-        elif seed_spec.get("default") is None:
-            params["seed"] = secrets.randbits(32)
-        else:
-            params["seed"] = seed_spec.get("default")
-
-    if model_name == "nano-banana-2" and "image_size" in params:
-        params["aspect_ratio"] = params.pop("image_size")
-
-    jpg_options = _parse_jpg_options(getattr(ns, "jpg_options", None), model_parser)
-
-    # Parse extra metadata
-    extra_metadata = {}
-    meta_json = getattr(ns, "meta", None)
-    if meta_json:
-        try:
-            extra_metadata = json.loads(meta_json)
-        except json.JSONDecodeError as exc:
-            model_parser.error(f"invalid JSON in --meta: {exc}")
-
-    return ParsedOptions(
-        model=model_name,
-        endpoint=model_def["endpoint"],
-        call=model_def["call"],
-        params=params,
-        add_prompt_metadata=bool(getattr(ns, "add_prompt_metadata", False)),
-        preview_assets=bool(getattr(ns, "preview_assets", True)),
-        as_jpg=bool(getattr(ns, "as_jpg", True)),
-        jpg_options=jpg_options,
-        extra_metadata=extra_metadata,
-    )
+    except SystemExit:
+        error_msg = f.getvalue().strip() or "Argument parsing failed"
+        raise ValueError(f"Invalid arguments: {error_msg}") from None
 
 
 def _parse_jpg_options(

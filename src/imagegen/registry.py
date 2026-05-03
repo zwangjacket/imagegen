@@ -500,8 +500,8 @@ MODEL_REGISTRY: dict[str, dict[str, Any]] = {
                 "flags": ["-s", "--seed"],
             },
             "safety_tolerance": {
-                "type": int,
-                "default": 6,
+                "type": str,
+                "default": "6",
                 "choices": [1, 2, 3, 4, 5, 6],
                 "help": "safety tolerance level (1-6, higher is less strict)",
             },
@@ -670,8 +670,8 @@ MODEL_REGISTRY: dict[str, dict[str, Any]] = {
                 "flags": ["-s", "--seed"],
             },
             "safety_tolerance": {
-                "type": int,
-                "default": 6,
+                "type": str,
+                "default": "6",
                 "choices": [1, 2, 3, 4, 5, 6],
                 "help": "safety tolerance level (1-6, higher is less strict)",
             },
@@ -1002,7 +1002,7 @@ MODEL_REGISTRY: dict[str, dict[str, Any]] = {
                 "help": "random seed (omit for random)",
                 "flags": ["-s", "--seed"],
             },
-            "aspect_ratio": {
+            "image_size": {
                 "type": "i",
                 "default": "auto",
                 "help": "aspect ratio preset",
@@ -1019,7 +1019,7 @@ MODEL_REGISTRY: dict[str, dict[str, Any]] = {
                     "2:3",
                     "9:16",
                 ],
-                "flags": ["-i", "--aspect-ratio"],
+                "flags": ["-i", "--aspect-ratio", "--image-size"],
             },
             "output_format": {
                 "type": str,
@@ -1027,8 +1027,8 @@ MODEL_REGISTRY: dict[str, dict[str, Any]] = {
                 "help": "output image format (jpeg, png, webp)",
             },
             "safety_tolerance": {
-                "type": int,
-                "default": 6,
+                "type": str,
+                "default": "6",
                 "choices": [1, 2, 3, 4, 5, 6],
                 "help": "safety tolerance level (1-6, higher is less strict)",
             },
@@ -1081,7 +1081,7 @@ MODEL_REGISTRY: dict[str, dict[str, Any]] = {
                 "help": "random seed (omit for random)",
                 "flags": ["-s", "--seed"],
             },
-            "aspect_ratio": {
+            "image_size": {
                 "type": "i",
                 "default": "auto",
                 "help": "aspect ratio preset",
@@ -1098,7 +1098,7 @@ MODEL_REGISTRY: dict[str, dict[str, Any]] = {
                     "2:3",
                     "9:16",
                 ],
-                "flags": ["-i", "--aspect-ratio"],
+                "flags": ["-i", "--aspect-ratio", "--image-size"],
             },
             "output_format": {
                 "type": str,
@@ -1106,8 +1106,8 @@ MODEL_REGISTRY: dict[str, dict[str, Any]] = {
                 "help": "output image format (jpeg, png, webp)",
             },
             "safety_tolerance": {
-                "type": int,
-                "default": 6,
+                "type": str,
+                "default": "6",
                 "choices": [1, 2, 3, 4, 5, 6],
                 "help": "safety tolerance level (1-6, higher is less strict)",
             },
@@ -1195,6 +1195,11 @@ MODEL_REGISTRY: dict[str, dict[str, Any]] = {
                 "default": 1,
                 "help": "maximum images to generate per request",
             },
+            "safety_tolerance": {
+                "type": str,
+                "default": "6",
+                "help": "safety tolerance level (1-6, higher is less strict)",
+            },
             "seed": {
                 "type": int,
                 "default": None,
@@ -1267,6 +1272,11 @@ MODEL_REGISTRY: dict[str, dict[str, Any]] = {
                 "default": 1,
                 "help": "maximum images to generate per request",
             },
+            "safety_tolerance": {
+                "type": str,
+                "default": "6",
+                "help": "safety tolerance level (1-6, higher is less strict)",
+            },
             "seed": {
                 "type": int,
                 "default": None,
@@ -1338,6 +1348,11 @@ MODEL_REGISTRY: dict[str, dict[str, Any]] = {
                 "type": int,
                 "default": 1,
                 "help": "maximum images to generate per request",
+            },
+            "safety_tolerance": {
+                "type": str,
+                "default": "6",
+                "help": "safety tolerance level (1-6, higher is less strict)",
             },
             "seed": {
                 "type": int,
@@ -1418,6 +1433,11 @@ MODEL_REGISTRY: dict[str, dict[str, Any]] = {
                 "type": int,
                 "default": 1,
                 "help": "maximum images to generate per request",
+            },
+            "safety_tolerance": {
+                "type": str,
+                "default": "6",
+                "help": "safety tolerance level (1-6, higher is less strict)",
             },
             "seed": {
                 "type": int,
@@ -1513,6 +1533,11 @@ MODEL_REGISTRY: dict[str, dict[str, Any]] = {
                 "default": None,
                 "help": "maximum images allowed",
             },
+            "safety_tolerance": {
+                "type": str,
+                "default": "6",
+                "help": "safety tolerance level (1-6, higher is less strict)",
+            },
         },
     },
     # Bytedance Seedream v4 edit (image editing with multiple reference images)
@@ -1582,6 +1607,11 @@ MODEL_REGISTRY: dict[str, dict[str, Any]] = {
                 "flags": ["--image-url", "--image-urls", "-u"],
                 "action": "append",
                 "metavar": "URL",
+            },
+            "safety_tolerance": {
+                "type": str,
+                "default": "6",
+                "help": "safety tolerance level (1-6, higher is less strict)",
             },
         },
     },

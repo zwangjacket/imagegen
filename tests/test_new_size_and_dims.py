@@ -9,7 +9,7 @@ pytestmark = pytest.mark.usefixtures("test_env_file")
 def test_image_size_must_be_allowed():
     parser = build_parser(MODEL_REGISTRY)
     # pick an invalid size
-    with pytest.raises(SystemExit):
+    with pytest.raises(ValueError):
         parse_args(
             ["flux-2", "-p", "x", "-i", "not_a_size"],
             registry=MODEL_REGISTRY,
@@ -27,12 +27,12 @@ def test_image_size_must_be_allowed():
 def test_image_size_accepts_dimensions_for_whi():
     parser = build_parser(MODEL_REGISTRY)
     ns = parse_args(
-        ["flux-2", "-p", "x", "-w", "1024", "-h", "768"],
+        ["flux-2", "-p", "x", "--width", "1024", "--height", "768"],
         registry=MODEL_REGISTRY,
         parser=parser,
     )
     assert ns.params["image_size"] == {"width": 1024, "height": 768}
-    with pytest.raises(SystemExit):
+    with pytest.raises(ValueError):
         parse_args(
             ["flux-2", "-p", "x", "-i", "1024x768"],
             registry=MODEL_REGISTRY,
@@ -43,7 +43,7 @@ def test_image_size_accepts_dimensions_for_whi():
 def test_width_height_disallowed_for_model():
     parser = build_parser(MODEL_REGISTRY)
     # fibo uses aspect_ratio presets and does not allow explicit width/height
-    with pytest.raises(SystemExit):
+    with pytest.raises(ValueError):
         parse_args(
             ["fibo", "-p", "x", "-w", "800", "-h", "600"],
             registry=MODEL_REGISTRY,

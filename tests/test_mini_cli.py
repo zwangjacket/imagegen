@@ -50,19 +50,19 @@ class TestGetCliFlags:
     """Unit tests for the get_cli_flags helper in forms.py."""
 
     def test_returns_list_of_dicts(self):
-        flags = get_cli_flags("schnell")
+        flags = get_cli_flags("fibo")
         assert isinstance(flags, list)
         assert all(isinstance(f, dict) for f in flags)
 
     def test_each_flag_has_required_keys(self):
-        flags = get_cli_flags("schnell")
+        flags = get_cli_flags("fibo")
         for f in flags:
             assert "flag" in f
             assert "type" in f
             assert "help" in f
 
     def test_flags_start_with_double_dash(self):
-        flags = get_cli_flags("schnell")
+        flags = get_cli_flags("fibo")
         for f in flags:
             assert f["flag"].startswith("--"), f"Flag {f['flag']} missing -- prefix"
 
@@ -81,14 +81,14 @@ class TestGetCliFlags:
 
     def test_boolean_type_detected(self):
         """Boolean options (e.g. enable_safety_checker) should have type 'boolean'."""
-        flags = get_cli_flags("schnell")
+        flags = get_cli_flags("fibo")
         by_flag = {f["flag"]: f for f in flags}
         safety = by_flag.get("--enable-safety-checker") or by_flag.get("-%")
         if safety:
             assert safety["type"] == "boolean"
 
     def test_int_type_detected(self):
-        flags = get_cli_flags("schnell")
+        flags = get_cli_flags("fibo")
         by_flag = {f["flag"]: f for f in flags}
         steps = by_flag.get("--num-inference-steps")
         if steps:
@@ -99,22 +99,22 @@ class TestGetCliFlags:
 
     def test_flags_differ_across_models(self):
         """Different models should produce different flag sets."""
-        flags_schnell = {f["flag"] for f in get_cli_flags("schnell")}
+        flags_fibo = {f["flag"] for f in get_cli_flags("fibo")}
         flags_seedream = {f["flag"] for f in get_cli_flags("seedream5")}
         # They MAY share some flags, but the sets should NOT be identical
         # unless both models genuinely have identical option specs.
-        if flags_schnell and flags_seedream:
+        if flags_fibo and flags_seedream:
             # At minimum, check both are non-empty — real difference is
             # tested by the "model-specific flag" test below.
-            assert len(flags_schnell) > 0
+            assert len(flags_fibo) > 0
             assert len(flags_seedream) > 0
 
     def test_model_specific_flag_appears(self):
-        """flux-2-pro should expose --safety-tolerance; schnell should not."""
+        """flux-2-pro should expose --safety-tolerance; fibo should not."""
         pro_flags = {f["flag"] for f in get_cli_flags("flux-2-pro")}
-        schnell_flags = {f["flag"] for f in get_cli_flags("schnell")}
+        fibo_flags = {f["flag"] for f in get_cli_flags("fibo")}
         if "--safety-tolerance" in pro_flags:
-            assert "--safety-tolerance" not in schnell_flags
+            assert "--safety-tolerance" not in fibo_flags
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -129,7 +129,7 @@ class TestApiModelSizesCliFlags:
         client = _make_client(tmp_path)
         headers = _auth_headers(client)
 
-        resp = client.get("/api/model-sizes/schnell", headers=headers)
+        resp = client.get("/api/model-sizes/fibo", headers=headers)
         payload = resp.get_json()
 
         assert "cli_flags" in payload
@@ -140,17 +140,17 @@ class TestApiModelSizesCliFlags:
         client = _make_client(tmp_path)
         headers = _auth_headers(client)
 
-        resp = client.get("/api/model-sizes/schnell", headers=headers)
+        resp = client.get("/api/model-sizes/fibo", headers=headers)
         payload = resp.get_json()
 
-        expected = get_cli_flags("schnell")
+        expected = get_cli_flags("fibo")
         assert payload["cli_flags"] == expected
 
     def test_cli_flags_change_per_model(self, tmp_path):
         client = _make_client(tmp_path)
         headers = _auth_headers(client)
 
-        r1 = client.get("/api/model-sizes/schnell", headers=headers)
+        r1 = client.get("/api/model-sizes/fibo", headers=headers)
         r2 = client.get("/api/model-sizes/seedream5", headers=headers)
 
         flags1 = {f["flag"] for f in r1.get_json()["cli_flags"]}
@@ -217,7 +217,7 @@ class TestQuietAssetFilter:
             level=logging.INFO,
             pathname="",
             lineno=0,
-            msg='127.0.0.1 - - [27/Feb/2026] "GET /api/model-sizes/schnell HTTP/1.1" 200 -',
+            msg='127.0.0.1 - - [27/Feb/2026] "GET /api/model-sizes/fibo HTTP/1.1" 200 -',
             args=(),
             exc_info=None,
         )
@@ -238,7 +238,7 @@ class TestExifMiniCli:
 
     @staticmethod
     def _build_args(
-        model="schnell",
+        model="fibo",
         prompt_name="test",
         mini_cli="",
         style_name=None,

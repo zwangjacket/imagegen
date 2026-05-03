@@ -357,7 +357,7 @@ def test_jpg_options_override_defaults():
 
 def test_jpg_options_reject_invalid_key():
     parser = build_parser(MODEL_REGISTRY)
-    with pytest.raises(SystemExit):
+    with pytest.raises(ValueError):
         parse_args(
             ["flux-2", "-p", "hello world", "--jpg-options", "fantasy=17"],
             registry=MODEL_REGISTRY,
@@ -392,15 +392,15 @@ def test_width_height_with_image_size_ok_and_precedence():
     parser = build_parser(MODEL_REGISTRY)
     # -i with -w/-h should be allowed; width/height take precedence and image_size ignored
     ns = parse_args(
-        ["flux-2", "-p", "x", "-i", "square", "-w", "1024", "-h", "768"],
+        ["flux-2", "-p", "x", "-i", "square", "--width", "1024", "--height", "768"],
         registry=MODEL_REGISTRY,
         parser=parser,
     )
     assert ns.params["image_size"] == {"width": 1024, "height": 768}
     # Missing one of -w/-h should error when any is provided
-    with pytest.raises(SystemExit):
+    with pytest.raises(ValueError):
         parse_args(
-            ["flux-2", "-p", "x", "-w", "1024"], registry=MODEL_REGISTRY, parser=parser
+            ["flux-2", "-p", "x", "--width", "1024"], registry=MODEL_REGISTRY, parser=parser
         )
 
 
