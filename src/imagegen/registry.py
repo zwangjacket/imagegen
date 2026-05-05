@@ -502,7 +502,7 @@ MODEL_REGISTRY: dict[str, dict[str, Any]] = {
             "safety_tolerance": {
                 "type": str,
                 "default": "6",
-                "choices": [1, 2, 3, 4, 5, 6],
+                "choices": ["1", "2", "3", "4", "5", "6"],
                 "help": "safety tolerance level (1-6, higher is less strict)",
             },
             "enable_safety_checker": {
@@ -672,7 +672,7 @@ MODEL_REGISTRY: dict[str, dict[str, Any]] = {
             "safety_tolerance": {
                 "type": str,
                 "default": "6",
-                "choices": [1, 2, 3, 4, 5, 6],
+                "choices": ["1", "2", "3", "4", "5", "6"],
                 "help": "safety tolerance level (1-6, higher is less strict)",
             },
             "enable_safety_checker": {
@@ -1029,7 +1029,7 @@ MODEL_REGISTRY: dict[str, dict[str, Any]] = {
             "safety_tolerance": {
                 "type": str,
                 "default": "6",
-                "choices": [1, 2, 3, 4, 5, 6],
+                "choices": ["1", "2", "3", "4", "5", "6"],
                 "help": "safety tolerance level (1-6, higher is less strict)",
             },
             "sync_mode": {
@@ -1108,7 +1108,7 @@ MODEL_REGISTRY: dict[str, dict[str, Any]] = {
             "safety_tolerance": {
                 "type": str,
                 "default": "6",
-                "choices": [1, 2, 3, 4, 5, 6],
+                "choices": ["1", "2", "3", "4", "5", "6"],
                 "help": "safety tolerance level (1-6, higher is less strict)",
             },
             "sync_mode": {
