@@ -218,16 +218,16 @@ def test_parser_does_not_require_common_keys():
             },
         ),
         (
-            ["ernie-image", "-p", "hi"],
+            ["ernie", "-p", "hi"],
             {
-                "model": "ernie-image",
+                "model": "ernie",
                 "params": {
                     "prompt": "hi",
                     "image_size": "square_hd",
                     "num_inference_steps": 50,
                     "guidance_scale": 5.0,
                     "num_images": 1,
-                    "enable_prompt_expansion": True,
+                    "enable_prompt_expansion": False,
                     "enable_safety_checker": False,
                     "output_format": "jpeg",
                     "sync_mode": False,
@@ -236,16 +236,16 @@ def test_parser_does_not_require_common_keys():
             },
         ),
         (
-            ["ernie-image-turbo", "-p", "hi"],
+            ["ernie-turbo", "-p", "hi"],
             {
-                "model": "ernie-image-turbo",
+                "model": "ernie-turbo",
                 "params": {
                     "prompt": "hi",
                     "image_size": "square_hd",
                     "num_inference_steps": 8,
                     "guidance_scale": 1.0,
                     "num_images": 1,
-                    "enable_prompt_expansion": True,
+                    "enable_prompt_expansion": False,
                     "enable_safety_checker": False,
                     "output_format": "jpeg",
                     "sync_mode": False,
