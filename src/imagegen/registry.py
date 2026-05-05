@@ -1647,7 +1647,7 @@ MODEL_REGISTRY: dict[str, dict[str, Any]] = {
             },
             "enable_prompt_expansion": {
                 "type": bool,
-                "default": True,
+                "default": False,
                 "help": "enable prompt enhancement",
                 "disable_help": "disable prompt enhancement",
             },
@@ -1742,7 +1742,7 @@ MODEL_REGISTRY: dict[str, dict[str, Any]] = {
             },
             "enable_prompt_expansion": {
                 "type": bool,
-                "default": True,
+                "default": False,
                 "help": "enable prompt enhancement",
                 "disable_help": "disable prompt enhancement",
             },
