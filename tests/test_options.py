@@ -218,9 +218,9 @@ def test_parser_does_not_require_common_keys():
             },
         ),
         (
-            ["ernie-image", "-p", "hi"],
+            ["ernie", "-p", "hi"],
             {
-                "model": "ernie-image",
+                "model": "ernie",
                 "params": {
                     "prompt": "hi",
                     "image_size": "square_hd",
@@ -236,9 +236,9 @@ def test_parser_does_not_require_common_keys():
             },
         ),
         (
-            ["ernie-image-turbo", "-p", "hi"],
+            ["ernie-turbo", "-p", "hi"],
             {
-                "model": "ernie-image-turbo",
+                "model": "ernie-turbo",
                 "params": {
                     "prompt": "hi",
                     "image_size": "square_hd",
