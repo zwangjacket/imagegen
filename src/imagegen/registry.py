@@ -1581,7 +1581,7 @@ MODEL_REGISTRY: dict[str, dict[str, Any]] = {
             },
         },
     },
-    "ernie-image": {
+    "ernie": {
         "endpoint": "fal-ai/ernie-image",
         "call": "subscribe",
         "doc_url": "https://fal.ai/models/fal-ai/ernie-image/api",
@@ -1676,7 +1676,7 @@ MODEL_REGISTRY: dict[str, dict[str, Any]] = {
             },
         },
     },
-    "ernie-image-turbo": {
+    "ernie-turbo": {
         "endpoint": "fal-ai/ernie-image/turbo",
         "call": "subscribe",
         "doc_url": "https://fal.ai/models/fal-ai/ernie-image/turbo/api",
